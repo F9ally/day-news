@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Day2Day News</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+    body {
+      background: #f9f9f9;
+      color: #222;
+      line-height: 1.6;
+      padding: 1rem;
+      max-width: 800px;
+      margin: auto;
+    }
+    header {
+      text-align: center;
+      padding: 1.5rem 0;
+    }
+    header h1 {
+      font-size: 2.5rem;
+      color: #111;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 0.75rem;
+      margin: 1rem 0;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 0.5rem;
+    }
+    section {
+      margin: 2rem 0;
+    }
+    .card {
+      background: #fff;
+      border-radius: 1rem;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      transition: transform 0.2s ease;
+    }
+    .card:hover {
+      transform: scale(1.01);
+    }
+    .date {
+      font-weight: bold;
+      color: #777;
+      margin-bottom: 0.5rem;
+    }
+    .corner-links {
+      position: fixed;
+      top: 1rem;
+      left: 0;
+      width: auto; /* Remove width: 100% */
+      pointer-events: none;
+      z-index: 100;
+    }
+    .corner-link {
+      display: flex;
+      align-items: center;
+      background: #e8f0fe;
+      border-left: 4px solid #4285f4;
+      border-radius: 0.5rem;
+      padding: 0.5rem 1rem 0.5rem 2.2rem;
+      min-width: 120px;
+      font-weight: 600;
+      text-decoration: none;
+      color: #222;
+      box-shadow: 0 2px 8px rgba(66,133,244,0.06);
+      position: fixed;
+      top: 1rem;
+      pointer-events: auto;
+      transition: background 0.2s;
+    }
+    .corner-link:hover {
+      background: #d2e3fc;
+    }
+    .corner-link .rect-icon {
+      position: absolute;
+      left: 0.7rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 1.1rem;
+      height: 1.1rem;
+      background: #4285f4;
+      border-radius: 0.2rem;
+      display: inline-block;
+    }
+    .corner-link.about {
+      left: 1rem;
+    }
+    .corner-link.support {
+      right: 1rem;
+    }
+    @media (max-width: 700px) {
+      .corner-links {
+        position: static;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+      }
+      .corner-link {
+        position: static;
+        margin: 0 0.5rem 0 0;
+        width: 48%;
+        min-width: unset;
+        justify-content: flex-start;
+      }
+      .corner-link:last-child {
+        margin-right: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="corner-links">
+    <a href="about.html" class="corner-link about">
+      <span class="rect-icon"></span>
+      About
+    </a>
+    <a href="about.html#support-us" class="corner-link support">
+      <span class="rect-icon"></span>
+      Donate!
+    </a>
+  </div>
+
+  <header>
+    <h1>Day2Day.ai</h1>
+    <p>Your daily dose of AI news</p>
+  </header>
+
+  <input type="text" placeholder="Search by date or topic
+  ..." oninput="searchSummaries(this.value)" />
+
+  <section id="today">
+    <h2>Today's Summary</h2>
+    <div class="card">
+      <div class="date">June 29, 2025</div>
+      <p>
+        <strong>📉 Global Markets Slide Amid Central Bank Signals</strong><br>
+        Global stock indexes closed lower today after several central banks indicated further tightening may be needed. Investor confidence remained cautious, particularly in Europe and North America.
+        <br>
+        <a href="https://finance.yahoo.com/news/live/stock-market-today-sp-500-nasdaq-fall-amid-fed-rate-uncertainty-as-trump-mulls-iran-move-200035781.html" target="_blank">Read more</a>
+      </p>
+      <p>
+        <strong>🌋 Japan: Mount Aso Erupts, No Casualties Reported</strong><br>
+        Mount Aso in southern Japan erupted early this morning, sending ash more than 2,000 meters into the air. Local authorities issued evacuation alerts but confirmed no injuries or fatalities.
+        <br>
+        <a href="https://www.reuters.com/article/world/japans-mount-aso-volcano-erupts-no-injuries-reported-idUSKCN12804Z" target="_blank">Read more</a>
+      </p>
+      <p>
+        <strong>🕊️ Sudan Conflict Toll Passes 10,000, UN Confirms</strong><br>
+        The UN reports that over 10,000 people have been killed in the ongoing civil conflict in Sudan, with millions displaced. The humanitarian toll continues to grow. The loss of life is deeply tragic, and aid agencies are calling for immediate international support.
+        <br>
+        <a href="https://apnews.com/article/6b61d480fbd617794332bda69657f1b2" target="_blank">Read more</a>
+      </p>
+      <p>
+        <strong>📱 Apple Launches iOS 19 Beta With AI Tools</strong><br>
+        Apple released the beta version of iOS 19 to developers, introducing a suite of on-device AI features. Early feedback notes improved privacy and faster performance.
+        <br>
+        <a href="https://9meters.com/technology/phones/ios-19-everything-you-need-to-know-about-apples-most-ambitious-update" target="_blank">Read more</a>
+      </p>
+      <p>
+        <strong>🎭 Broadway Actor Michael Rey Passes at 56</strong><br>
+        Tony-nominated actor Michael Rey has died after a brief illness, according to his publicist. His passing has prompted an outpouring of tributes from the theater community. He is remembered for his powerful performances and kind spirit.
+      </p>
+      <p>
+        <strong>💧Western U.S. Faces New Water Restrictions</strong><br>
+        Several states in the U.S. West are enacting stricter water conservation rules following a record-low snowpack year. Officials warn of prolonged drought effects and urge public cooperation.
+      </p>
+      <p>
+        <strong>🚀 China’s Chang’e-7 Moon Mission Scheduled for Launch in 2026</strong><br>
+        China has confirmed its next lunar mission will launch in mid-2026, aiming to explore the Moon's south pole. The mission includes a lander, orbiter, and a small hopper drone.
+      </p>
+    </div>
+  </section>
+
+  <section id="archive">
+    <h2>Past Summaries</h2>
+    <div class="card">
+      <div class="date">June 21, 2025</div>
+      <p>Anthropic integrates Claude into Notion AI. DeepMind achieves major milestone in protein folding prediction accuracy...</p>
+    </div>
+    <div class="card">
+      <div class="date">June 20, 2025</div>
+      <p>AI-generated music passes copyright originality test. Apple plans on-device language models in iOS 20...</p>
+    </div>
+  </section>
+
+  <footer>
+    © 2025 Day2Day News Summaries. AI can make mistakes. All rights reserved. Day2Day News does not endorse any ideas, political parties or products.
+  </footer>
+
+  <script>
+    function searchSummaries(query) {
+      const cards = document.querySelectorAll('#archive .card');
+      cards.forEach(card => {
+        const content = card.innerText.toLowerCase();
+        card.style.display = content.includes(query.toLowerCase()) ? 'block' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>
