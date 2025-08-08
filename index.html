@@ -5,12 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Day2Day News</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4710848797951599"
+     crossorigin="anonymous"></script>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: 'Inter', sans-serif;
+      font-family: Arial, Helvetica, sans-serif;
     }
     body {
       background: #f9f9f9;
@@ -27,6 +30,13 @@
     header h1 {
       font-size: 2.5rem;
       color: #111;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+    }
+    #today h2 {
+      font-weight: 400;
+      color: #222;
+      text-shadow: 0 1px 2px rgba(66,133,244,0.07);
     }
     input[type="text"] {
       width: 100%;
@@ -117,6 +127,31 @@
       .corner-link:last-child {
         margin-right: 0;
       }
+      #archive > div {
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.5rem !important;
+        text-align: center !important;
+      }
+      #archive h2 {
+        width: 100%;
+        text-align: center;
+        margin-bottom: 0.5rem;
+      }
+      #search-archive {
+        width: 100%;
+        max-width: 250px;
+        margin-left: auto;
+        margin-right: auto;
+        text-align: center;
+        display: block;
+      }
+      #archive label[for="search-archive"] {
+        text-align: center;
+        width: 100%;
+        display: block;
+      }
     }
   </style>
 </head>
@@ -128,20 +163,61 @@
     </a>
     <a href="about.html#support-us" class="corner-link support">
       <span class="rect-icon"></span>
-      Donate!
+      Donate
     </a>
   </div>
 
   <header>
-    <h1>Day2Day.ai</h1>
-    <p>Your daily dose of AI news</p>
+    <h1>Day2Day News</h1>
+    <p>Your daily dose of AI summarized news</p>
   </header>
-
-  <input type="text" placeholder="Search by date or topic
-  ..." oninput="searchSummaries(this.value)" />
-
   <section id="today">
-    <h2>Today's Summary</h2>
+    <h2 style="display: flex; align-items: center; justify-content: center; gap: 1rem; text-align: center;">
+      <button id="play-audio" title="Play audio summary"
+        style="
+          background: #e8f0fe;
+          border: none;
+          border-radius: 50%;
+          width: 2rem;
+          height: 2rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          box-shadow: 0 2px 8px rgba(66,133,244,0.06);
+          transition: background 0.2s;
+        "
+        onmouseover="this.style.background='#d2e3fc'"
+        onmouseout="this.style.background='#e8f0fe'"
+        ontouchstart="this.style.background='#d2e3fc'"
+        ontouchend="this.style.background='#e8f0fe'"
+      >
+        <i class="fa-solid fa-play" style="font-size: 1.2rem; color: #4285f4;"></i>
+      </button>
+      Today's Summary
+      <button id="preferences-btn" title="Preferences"
+        style="
+          background: #e8f0fe;
+          border: none;
+          border-radius: 50%;
+          width: 2rem;
+          height: 2rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          margin-left: 1rem;
+          box-shadow: 0 2px 8px rgba(66,133,244,0.06);
+          transition: background 0.2s;
+        "
+        onmouseover="this.style.background='#d2e3fc'"
+        onmouseout="this.style.background='#e8f0fe'"
+        ontouchstart="this.style.background='#d2e3fc'"
+        ontouchend="this.style.background='#e8f0fe'"
+      >
+        <i class="fa-solid fa-gear" style="font-size: 1.2rem; color: #4285f4;"></i>
+      </button>
+    </h2>
     <div class="card">
       <div class="date">June 29, 2025</div>
       <p>
@@ -184,29 +260,315 @@
   </section>
 
   <section id="archive">
-    <h2>Past Summaries</h2>
-    <div class="card">
-      <div class="date">June 21, 2025</div>
-      <p>Anthropic integrates Claude into Notion AI. DeepMind achieves major milestone in protein folding prediction accuracy...</p>
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 2rem;">
+      <h2 style="margin-bottom: 0;">Past Summaries</h2>
+      <div style="min-width: 220px;">
+        <label for="search-archive" style="font-weight:600; display:block; margin-bottom:0.3rem;">
+        <input id="search-archive" type="text" placeholder="Search by date or topic..." oninput="searchSummaries(this.value)" style="width: 100%; margin: 0;" />
+      </div>
     </div>
-    <div class="card">
-      <div class="date">June 20, 2025</div>
-      <p>AI-generated music passes copyright originality test. Apple plans on-device language models in iOS 20...</p>
+    <!-- Past summaries cards remain full width below -->
+    <div id="archive-cards">
+      <div class="card">
+        <div class="date">June 21, 2025</div>
+        <p>Anthropic integrates Claude into Notion AI. DeepMind achieves major milestone in protein folding prediction accuracy...</p>
+      </div>
+      <div class="card">
+        <div class="date">June 20, 2025</div>
+        <p>AI-generated music passes copyright originality test. Apple plans on-device language models in iOS 20...</p>
+      </div>
     </div>
   </section>
 
+  <!-- Ad Section removed for Google AdSense integration -->
+
   <footer>
-    © 2025 Day2Day News Summaries. AI can make mistakes. All rights reserved. Day2Day News does not endorse any ideas, political parties or products.
+    © 2025 Day2Day News Summaries. A JusT Website. AI can make mistakes. All rights reserved. Day2Day News does not endorse any ideas, political parties or products.
   </footer>
+
+  <!-- Preferences Sidebar -->
+<div id="preferences-sidebar" style="position: fixed; top: 0; right: -320px; width: 320px; height: 100vh; background: #fff; box-shadow: -2px 0 16px rgba(0,0,0,0.08); z-index: 9999; transition: right 0.3s; padding: 2rem 1.5rem; display: flex; flex-direction: column;">
+  <h3 style="margin-top: 0; margin-bottom: 2rem; font-size: 1.3rem; text-align: left; color: #222;">Preferences</h3>
+  <div style="margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between;">
+    <span style="font-size: 1.1rem;">Dark Mode</span>
+    <button id="dark-mode-toggle" style="background: none; border: none; cursor: pointer;">
+      <i id="dark-mode-icon" class="fa-solid fa-toggle-off" style="font-size: 1.5rem; color: #4285f4;"></i>
+    </button>
+  </div>
+  <div style="margin-bottom: 1.5rem;">
+    <span style="font-size: 1.1rem; font-weight: 500;">Topics</span>
+    <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem;">
+      <button class="topic-toggle" data-topic="World News" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 1rem;">
+        <span>World News</span>
+        <i class="fa-solid fa-toggle-on" style="font-size: 1.5rem; color: #4285f4;"></i>
+      </button>
+      <button class="topic-toggle" data-topic="Tech" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 1rem;">
+        <span>Tech</span>
+        <i class="fa-solid fa-toggle-off" style="font-size: 1.5rem; color: #4285f4;"></i>
+      </button>
+      <button class="topic-toggle" data-topic="Travel" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 1rem;">
+        <span>Travel</span>
+        <i class="fa-solid fa-toggle-off" style="font-size: 1.5rem; color: #4285f4;"></i>
+      </button>
+      <button class="topic-toggle" data-topic="Politics" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 1rem;">
+        <span>Politics</span>
+        <i class="fa-solid fa-toggle-off" style="font-size: 1.5rem; color: #4285f4;"></i>
+      </button>
+    </div>
+  </div>
+  <button id="close-sidebar" style="margin-top: auto; background: #e8f0fe; border: none; border-radius: 0.5rem; padding: 0.7rem 1.2rem; color: #222; font-weight: 600; cursor: pointer;">Close</button>
+</div>
 
   <script>
     function searchSummaries(query) {
-      const cards = document.querySelectorAll('#archive .card');
+      const cards = document.querySelectorAll('#archive-cards .card');
       cards.forEach(card => {
         const content = card.innerText.toLowerCase();
         card.style.display = content.includes(query.toLowerCase()) ? 'block' : 'none';
       });
     }
+
+    // Audio summary play button logic
+    document.getElementById('play-audio').addEventListener('click', function () {
+      let audio = document.getElementById('summary-audio');
+      if (!audio) {
+        audio = document.createElement('audio');
+        audio.id = 'summary-audio';
+        audio.src = 'audio/todays-summary.mp3'; // Replace with your actual audio file path
+        document.body.appendChild(audio);
+      }
+      audio.play();
+    });
+
+    // Preferences sidebar logic
+    const sidebar = document.getElementById('preferences-sidebar');
+    const openBtn = document.getElementById('preferences-btn');
+    const closeBtn = document.getElementById('close-sidebar');
+    openBtn.addEventListener('click', () => {
+      sidebar.style.right = '0';
+      document.body.classList.add('sidebar-open');
+    });
+    closeBtn.addEventListener('click', () => {
+      sidebar.style.right = '-320px';
+      document.body.classList.remove('sidebar-open');
+    });
+
+    // Hide sidebar when clicking outside
+    window.addEventListener('mousedown', function(e) {
+      if (document.body.classList.contains('sidebar-open')) {
+        if (!sidebar.contains(e.target) && e.target !== openBtn) {
+          sidebar.style.right = '-320px';
+          document.body.classList.remove('sidebar-open');
+        }
+      }
+    });
+    // Hide sidebar on backspace
+    window.addEventListener('keydown', function(e) {
+      if (document.body.classList.contains('sidebar-open') && e.key === 'Backspace') {
+        sidebar.style.right = '-320px';
+        document.body.classList.remove('sidebar-open');
+      }
+    });
+
+    // Dark mode toggle logic (improved contrast + link/placeholder styling)
+    const darkModeToggle = document.getElementById('dark-mode-toggle');
+    const darkModeIcon = document.getElementById('dark-mode-icon');
+    let darkMode = false;
+
+    const applyDarkMode = () => {
+      const body = document.body;
+      body.style.background = '#0f1419';
+      body.style.color = '#e6edf3';
+      const h1 = document.querySelector('header h1');
+      if (h1) h1.style.color = '#e6edf3';
+
+      // Ensure section headers are readable
+      const todayH2 = document.querySelector('#today h2');
+      if (todayH2) todayH2.style.color = '#e6edf3';
+
+      sidebar.style.background = '#161b22';
+      sidebar.style.color = '#e6edf3';
+      const prefTitle = sidebar.querySelector('h3');
+      if (prefTitle) prefTitle.style.color = '#e6edf3';
+
+      // Override all dark text to light
+      document.querySelectorAll('strong, p, span, label').forEach(el => {
+        el.style.color = '#e6edf3';
+      });
+
+      document.querySelectorAll('.card').forEach(card => {
+        card.style.background = '#161b22';
+        card.style.color = '#e6edf3';
+        card.style.boxShadow = '0 4px 16px rgba(0,0,0,0.40)';
+      });
+      document.querySelectorAll('.card .date').forEach(dateEl => {
+        dateEl.style.color = '#9aa4b2';
+      });
+
+      document.querySelectorAll('input[type="text"]').forEach(input => {
+        input.style.background = '#0f1419';
+        input.style.color = '#e6edf3';
+        input.style.borderColor = '#30363d';
+      });
+
+      document.querySelectorAll('footer').forEach(footer => {
+        footer.style.background = '#161b22';
+        footer.style.color = '#9aa4b2';
+        footer.style.borderTop = '1px solid #30363d';
+      });
+
+      document.querySelectorAll('.corner-link').forEach(link => {
+        link.style.background = '#161b22';
+        link.style.color = '#e6edf3';
+        link.style.borderLeft = '4px solid #8ab4f8';
+      });
+
+      // Primary action buttons (play, preferences)
+      const playBtn = document.getElementById('play-audio');
+      const prefBtn = document.getElementById('preferences-btn');
+      [playBtn, prefBtn].forEach(btn => {
+        if (!btn) return;
+        btn.style.background = '#1f2a37';
+        btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.40)';
+        btn.setAttribute('onmouseover', "this.style.background='#263244'");
+        btn.setAttribute('onmouseout', "this.style.background='#1f2a37'");
+        btn.setAttribute('ontouchstart', "this.style.background='#263244'");
+        btn.setAttribute('ontouchend', "this.style.background='#1f2a37'");
+        const icon = btn.querySelector('i');
+        if (icon) icon.style.color = '#8ab4f8';
+      });
+
+      // Style the sidebar close button for dark mode
+      const closeBtnEl = document.getElementById('close-sidebar');
+      if (closeBtnEl) {
+        closeBtnEl.style.background = '#1f2a37';
+        closeBtnEl.style.color = '#e6edf3';
+        closeBtnEl.style.boxShadow = '0 2px 8px rgba(0,0,0,0.40)';
+        closeBtnEl.setAttribute('onmouseover', "this.style.background='#263244'");
+        closeBtnEl.setAttribute('onmouseout', "this.style.background='#1f2a37'");
+        closeBtnEl.setAttribute('ontouchstart', "this.style.background='#263244'");
+        closeBtnEl.setAttribute('ontouchend', "this.style.background='#1f2a37'");
+      }
+
+      // Inject CSS for links, placeholders, and corner-link hover/icon
+      let styleEl = document.getElementById('darkmode-css');
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'darkmode-css';
+        styleEl.textContent = `
+          a { color: #8ab4f8; }
+          a:hover { color: #9cc1ff; }
+          input::placeholder { color: #9aa4b2; opacity: 1; }
+          .corner-link:hover { background: #1b2330 !important; }
+          .corner-link .rect-icon { background: #8ab4f8 !important; }
+        `;
+        document.head.appendChild(styleEl);
+      }
+
+      darkModeIcon.classList.remove('fa-toggle-off');
+      darkModeIcon.classList.add('fa-toggle-on');
+    };
+
+    const applyLightMode = () => {
+      const body = document.body;
+      body.style.background = '#f9f9f9';
+      body.style.color = '#222';
+      const h1 = document.querySelector('header h1');
+      if (h1) h1.style.color = '#111';
+
+      // Revert section header colors
+      const todayH2 = document.querySelector('#today h2');
+      if (todayH2) todayH2.style.color = '#222';
+
+      sidebar.style.background = '#fff';
+      sidebar.style.color = '#222';
+      const prefTitle = sidebar.querySelector('h3');
+      if (prefTitle) prefTitle.style.color = '#222';
+
+      // Revert all text to default
+      document.querySelectorAll('strong, p, span, label').forEach(el => {
+        el.style.color = '';
+      });
+
+      document.querySelectorAll('.card').forEach(card => {
+        card.style.background = '#fff';
+        card.style.color = '#222';
+        card.style.boxShadow = '0 4px 8px rgba(0,0,0,0.05)';
+      });
+      document.querySelectorAll('.card .date').forEach(dateEl => {
+        dateEl.style.color = '#777';
+      });
+
+      document.querySelectorAll('input[type="text"]').forEach(input => {
+        input.style.background = '#fff';
+        input.style.color = '#222';
+        input.style.borderColor = '#ccc';
+      });
+
+      document.querySelectorAll('footer').forEach(footer => {
+        footer.style.background = 'none';
+        footer.style.color = '#222';
+        footer.style.borderTop = '';
+      });
+
+      document.querySelectorAll('.corner-link').forEach(link => {
+        link.style.background = '#e8f0fe';
+        link.style.color = '#222';
+        link.style.borderLeft = '4px solid #4285f4';
+      });
+
+      // Reset buttons to light colors
+      const playBtn = document.getElementById('play-audio');
+      const prefBtn = document.getElementById('preferences-btn');
+      [playBtn, prefBtn].forEach(btn => {
+        if (!btn) return;
+        btn.style.background = '#e8f0fe';
+        btn.style.boxShadow = '0 2px 8px rgba(66,133,244,0.06)';
+        btn.setAttribute('onmouseover', "this.style.background='#d2e3fc'");
+        btn.setAttribute('onmouseout', "this.style.background='#e8f0fe'");
+        btn.setAttribute('ontouchstart', "this.style.background='#d2e3fc'");
+        btn.setAttribute('ontouchend', "this.style.background='#e8f0fe'");
+        const icon = btn.querySelector('i');
+        if (icon) icon.style.color = '#4285f4';
+      });
+
+      const closeBtnEl = document.getElementById('close-sidebar');
+      if (closeBtnEl) {
+        closeBtnEl.style.background = '#e8f0fe';
+        closeBtnEl.style.color = '#222';
+        closeBtnEl.style.boxShadow = '';
+        closeBtnEl.setAttribute('onmouseover', "this.style.background='#d2e3fc'");
+        closeBtnEl.setAttribute('onmouseout', "this.style.background='#e8f0fe'");
+        closeBtnEl.setAttribute('ontouchstart', "this.style.background='#d2e3fc'");
+        closeBtnEl.setAttribute('ontouchend', "this.style.background='#e8f0fe'");
+      }
+
+      // Remove injected dark CSS
+      const styleEl = document.getElementById('darkmode-css');
+      if (styleEl) styleEl.remove();
+
+      darkModeIcon.classList.remove('fa-toggle-on');
+      darkModeIcon.classList.add('fa-toggle-off');
+    };
+
+    darkModeToggle.addEventListener('click', () => {
+      darkMode = !darkMode;
+      darkMode ? applyDarkMode() : applyLightMode();
+    });
+
+    // Topic toggle logic
+    document.querySelectorAll('.topic-toggle').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const icon = this.querySelector('i');
+        if (icon.classList.contains('fa-toggle-on')) {
+          icon.classList.remove('fa-toggle-on');
+          icon.classList.add('fa-toggle-off');
+        } else {
+          icon.classList.remove('fa-toggle-off');
+          icon.classList.add('fa-toggle-on');
+        }
+      });
+    });
   </script>
 </body>
 </html>
