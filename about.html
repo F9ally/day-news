@@ -204,15 +204,29 @@
   <!-- Google AdSense Banner -->
   <div id="adsense-banner" style="position:fixed; left:0; right:0; bottom:0; z-index:99999; background:#fff; box-shadow:0 -2px 8px rgba(0,0,0,0.08); display:flex; justify-content:center; align-items:center; min-height:60px;">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4710848797951599" crossorigin="anonymous"></script>
-    <ins class="adsbygoogle"
-         style="display:block; width:100%; min-width:320px; min-height:60px; text-align:center;"
-         data-ad-client="ca-pub-4710848797951599"
-         data-ad-slot="YOUR_SLOT_ID"
-         data-ad-format="auto"
-         data-full-width-responsive="true"></ins>
+  <ins class="adsbygoogle"
+     style="display:block; width:100%; min-width:320px; min-height:60px; text-align:center;"
+     data-ad-client="ca-pub-4710848797951599"
+     data-ad-slot="YOUR_SLOT_ID"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
     <script>
       (adsbygoogle = window.adsbygoogle || []).push({});
+      // Hide banner if ad fails to load (after short delay)
+      setTimeout(function() {
+        var ins = document.querySelector('#adsense-banner ins.adsbygoogle');
+        var banner = document.getElementById('adsense-banner');
+        // If ins is empty or has zero height, hide banner
+        if (ins && banner && (ins.offsetHeight < 10 || ins.innerHTML.trim() === '')) {
+          banner.style.display = 'none';
+        }
+      }, 2000);
     </script>
+  <style>
+    #adsense-banner:empty, #adsense-banner[style*="display: none"] {
+      display: none !important;
+    }
+  </style>
   </div>
 
   <script>
