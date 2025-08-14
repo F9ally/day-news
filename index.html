@@ -12,8 +12,63 @@
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Favicons and touch icons (optimized files) -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#e8f0fe" />
+  <meta name="description" content="Day2Day News provides concise, AI-curated daily summaries of the world's top stories — read or listen in under five minutes. Fresh updates every morning at 6:30 AM GMT." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://day2day.news/" />
+  <!-- Open Graph / Social -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Day2Day News — Concise daily news summaries" />
+  <meta property="og:description" content="Concise, AI-curated daily news summaries delivered each morning. Read summaries and follow original sources." />
+  <meta property="og:url" content="https://day2day.news/" />
+  <meta property="og:site_name" content="Day2Day News" />
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Day2Day News — Concise daily news summaries" />
+  <meta name="twitter:description" content="Concise, AI-curated daily news summaries delivered each morning." />
+
+  <!-- Structured data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "name": "Day2Day News",
+        "url": "https://day2day.news",
+        "description": "Concise, AI-curated daily news summaries delivered each morning.",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://day2day.news/?s={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "Organization",
+        "name": "Day2Day News",
+        "url": "https://day2day.news",
+        "sameAs": [
+          "https://twitter.com/yourhandle"
+        ],
+        "contactPoint": [{
+          "@type": "ContactPoint",
+          "email": "justwebsites.contact@gmail.com",
+          "contactType": "customer support"
+        }]
+      }
+    ]
+  }
+  </script>
   <title>Day2Day News</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"></noscript>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4710848797951599"
      crossorigin="anonymous"></script>
@@ -264,7 +319,7 @@
 
   <header>
     <h1>Day2Day News</h1>
-    <p>Your daily dose of AI summarized news</p>
+    <p>Stay informed and save time!</p>
   </header>
   <section id="today">
     <h2 style="display: flex; align-items: center; justify-content: center; gap: 1rem; text-align: center;">
@@ -397,7 +452,7 @@
           <p><strong>7. Guatemala Hit by Offshore Earthquake</strong><br>
           A magnitude-5.9 earthquake struck off Guatemala's southwest coast. Fortunately, no significant damage has been reported so far.<br>
           Source: ABC News<br>
-          <a href="https://abcnews.go.com/International?utm_source=chatgpt.com" target="_blank" rel="noopener">Read more</a></p>
+          <a href="https://abcnews.go.com/International?utm_source=chatgpt.com" target="_blank">Read more</a></p>
           <p><strong>8. UK Anti-Immigration Protests Spread Across Cities</strong><br>
           Anti-migration demonstrations swept across Britain from August 8–9, prompting multiple arrests. Protests took place in cities such as Liverpool, Norwich, Bristol, and Bournemouth, often featuring confrontations between opposing groups and substantial police involvement.<br>
           Source: Wikipedia<br>
