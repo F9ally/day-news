@@ -52,8 +52,60 @@
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#e8f0fe" />
+  <meta name="description" content="Day2Day News delivers concise, AI-curated daily summaries of the world’s top stories — all in under five minutes. Fresh updates daily at 6:30 AM GMT. Support our non-partisan independent summaries." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://day2day.news/about.html" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png">
+  <!-- Open Graph / Social -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="About & Donate - Day2Day News" />
+  <meta property="og:description" content="Learn about Day2Day News and how you can support our concise AI-curated daily news summaries." />
+  <meta property="og:url" content="https://day2day.news/about.html" />
+  <meta property="og:site_name" content="Day2Day News" />
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="About & Donate - Day2Day News" />
+  <meta name="twitter:description" content="Learn about Day2Day News and how you can support our concise AI-curated daily news summaries." />
+
+  <!-- Structured data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "name": "Day2Day News",
+        "url": "https://day2day.news",
+        "description": "Concise, AI summarized news delivered each morning.",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://day2day.news/?s={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "Organization",
+        "name": "Day2Day News",
+        "url": "https://day2day.news",
+        "contactPoint": [{
+          "@type": "ContactPoint",
+          "email": "justwebsites.contact@gmail.com",
+          "contactType": "customer support"
+        }]
+      }
+    ]
+  }
+  </script>
+
   <title>About & Donate - Day2Day News</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <!-- Improve font loading: preconnect + non-blocking stylesheet load -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"></noscript>
   <style>
     * {
       margin: 0;
@@ -76,6 +128,18 @@
     header h1 {
       font-size: 2.5rem;
       color: #111;
+    }
+    header p.tagline {
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+      font-size: 1.05rem;
+      font-weight: 400;
+      color: #5b6b77;
+      margin-top: 0.5rem;
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+      letter-spacing: 0.01em;
+      line-height: 1.4;
     }
     section {
       margin: 2rem 0;
@@ -173,7 +237,7 @@
     <div class="card">
       <h2>About Day2Day News</h2>
       <p>Day2Day News delivers concise, AI-curated summaries of the day’s most important events from around the world — all in under 5 minutes. Fresh updates arrive daily at 6:30 AM GMT, so you can start your day informed, not overloaded.</p>
-      <p>This site is still in development, so features like audio playback, personalized feeds, and past summary archives are coming soon. While we strive for accuracy, AI can occasionally make mistakes — that’s why every summary includes the source link, so you can explore the complete story for yourself.</p>
+      <p>This site is still in development, so features like audio playback, personalized feeds, and past summary archives are coming soon. AI makes the summaries not the content. Interested in the full article? Click on the summary to view it.</p>
     </div>
   </section>
 
@@ -192,7 +256,7 @@
     <div class="card">
       <p>Have questions, feedback, or want to get in touch? We'd love to hear from you!</p>
       <ul>
-        <li>Email: <a href="mailto:hello@day2day.ai">justwebsites.contact@gmail.com</a></li>
+        <li>Email: <a href="mailto:hello@day2day.news">justwebsites.contact@gmail.com</a></li>
       </ul>
     </div>
   </section>
