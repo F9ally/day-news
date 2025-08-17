@@ -1,111 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="5f1045aa-cbd8-4f2c-9f66-aa23d7570046" type="text/javascript" async></script>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GX036FEJR2"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-GX036FEJR2');
-  </script>
-  <script>
-    function applyDarkModeAbout() {
-      document.body.style.background = '#0f1419';
-      document.body.style.color = '#e6edf3';
-      var h1 = document.querySelector('header h1');
-      if (h1) h1.style.color = '#e6edf3';
-      document.querySelectorAll('section h2').forEach(h2 => h2.style.color = '#e6edf3');
-      document.querySelectorAll('.card').forEach(card => {
-        card.style.background = '#161b22';
-        card.style.color = '#e6edf3';
-        card.style.boxShadow = '0 4px 16px rgba(0,0,0,0.40)';
-      });
-      document.querySelectorAll('footer').forEach(footer => {
-        footer.style.background = '#161b22';
-        footer.style.color = '#9aa4b2';
-        footer.style.borderTop = '1px solid #30363d';
-      });
-      document.querySelectorAll('.corner-link').forEach(link => {
-        link.style.background = '#161b22';
-        link.style.color = '#e6edf3';
-        link.style.borderLeft = '4px solid #8ab4f8';
-      });
-      // Make corner-link icon match dark theme
-      document.querySelectorAll('.corner-link .rect-icon').forEach(icon => {
-        icon.style.background = '#8ab4f8';
-      });
-      // Inject dark-mode link styles
-      let styleEl = document.getElementById('darkmode-css-about');
-      if (!styleEl) {
-        styleEl = document.createElement('style');
-        styleEl.id = 'darkmode-css-about';
-        styleEl.textContent = `
-          a { color: #8ab4f8; }
-          a:hover { color: #9cc1ff; }
-          a:visited { color: #9fb7ff; }
-        `;
-        document.head.appendChild(styleEl);
-      }
-    }
-  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#e8f0fe" />
-  <meta name="description" content="Day2Day News delivers concise, AI-curated daily summaries of the world’s top stories — all in under five minutes. Fresh updates daily at 6:30 AM GMT. Support our non-partisan independent summaries." />
-  <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://day2day.news/about.html" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png">
-  <!-- Open Graph / Social -->
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="About & Donate - Day2Day News" />
-  <meta property="og:description" content="Learn about Day2Day News and how you can support our concise AI-curated daily news summaries." />
-  <meta property="og:url" content="https://day2day.news/about.html" />
-  <meta property="og:site_name" content="Day2Day News" />
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="About & Donate - Day2Day News" />
-  <meta name="twitter:description" content="Learn about Day2Day News and how you can support our concise AI-curated daily news summaries." />
-
-  <!-- Structured data (JSON-LD) -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "WebSite",
-        "name": "Day2Day News",
-        "url": "https://day2day.news",
-        "description": "Concise, AI summarized news delivered each morning.",
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": "https://day2day.news/?s={search_term_string}",
-          "query-input": "required name=search_term_string"
-        }
-      },
-      {
-        "@type": "Organization",
-        "name": "Day2Day News",
-        "url": "https://day2day.news",
-        "contactPoint": [{
-          "@type": "ContactPoint",
-          "email": "justwebsites.contact@gmail.com",
-          "contactType": "customer support"
-        }]
-      }
-    ]
-  }
-  </script>
-
   <title>About & Donate - Day2Day News</title>
-  <!-- Improve font loading: preconnect + non-blocking stylesheet load -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"></noscript>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <style>
     * {
       margin: 0;
@@ -128,18 +27,6 @@
     header h1 {
       font-size: 2.5rem;
       color: #111;
-    }
-    header p.tagline {
-      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
-      font-size: 1.05rem;
-      font-weight: 400;
-      color: #5b6b77;
-      margin-top: 0.5rem;
-      max-width: 720px;
-      margin-left: auto;
-      margin-right: auto;
-      letter-spacing: 0.01em;
-      line-height: 1.4;
     }
     section {
       margin: 2rem 0;
@@ -169,7 +56,7 @@
       background: #e8f0fe;
       border-left: 4px solid #4285f4;
       border-radius: 0.5rem;
-  padding: 0.5rem 1rem 0.5rem 2.2rem;
+      padding: 0.5rem 1rem 0.5rem 2.2rem;
       min-width: 120px;
       font-weight: 600;
       text-decoration: none;
@@ -177,8 +64,6 @@
       box-shadow: 0 2px 8px rgba(66,133,244,0.06);
       position: fixed;
       top: 1rem;
-  height: 2.5rem;
-  line-height: 1;
       pointer-events: auto;
       transition: background 0.2s;
     }
@@ -201,18 +86,17 @@
     }
     @media (max-width: 700px) {
       .corner-links {
-  position: static;
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-  pointer-events: auto;
+        position: static;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
       }
       .corner-link {
-  position: static;
-  margin: 0 0.5rem 0 0;
-  width: 48%;
-  min-width: unset;
-  justify-content: flex-start;
+        position: static;
+        margin: 0 0.5rem 0 0;
+        width: 48%;
+        min-width: unset;
+        justify-content: flex-start;
       }
       .corner-link:last-child {
         margin-right: 0;
@@ -236,17 +120,20 @@
   <section id="about">
     <div class="card">
       <h2>About Day2Day News</h2>
-      <p>Day2Day News delivers concise, AI-curated summaries of the day’s most important events from around the world — all in under 5 minutes. Fresh updates arrive daily at 6:30 AM GMT, so you can start your day informed, not overloaded.</p>
-      <p>This site is still in development, so features like audio playback, personalized feeds, and past summary archives are coming soon. AI makes the summaries not the content. Interested in the full article? Click on the summary to view it.</p>
+      <p>Day2Day News is your go-to source for quick, reliable summaries of the most important events happing each day around the world. This is bite sized news without the bulk.</p>
+      <p>Curated daily by AI, our goal is to help you stay informed in under 5 minutes a day. We go through rigorous testing to insure information is accurate and trustworthy. However AI can make mistakes, so always verify the source. Links to the entire news feeds are always available, simply click on the paragraph to get redirected to the source.
+      <p>Picky about what you read? Select Preferences to choose the subjects you want to stay up to date on, Day2Day.
+      <p>Day2Day News is a project by JusT Website, an independent website developer.</p>
+      </p>
     </div>
   </section>
 
   <section id="support-us">
     <h2>Support Us</h2>
     <div class="card">
-      <p>If you find Day2Day News helpful, please consider supporting us! Your donations help keep the website operational.</p>
+      <p>If you find Day2Day News helpful, please consider supporting us! Your donation helps keep this website running and completely free for everyone.</p>
       <ul>
-  <li>Tip via Revolut: <a href="https://revolut.me/loical" target="_blank" rel="noopener">revolut.me/loical</a></li>
+        <li>Tip via Revolut: <a href="https://revolut.me/loical" target="_blank">revolut.me/loical</a></li>
       </ul>
     </div>
   </section>
@@ -256,71 +143,13 @@
     <div class="card">
       <p>Have questions, feedback, or want to get in touch? We'd love to hear from you!</p>
       <ul>
-        <li>Email: <a href="mailto:hello@day2day.news">justwebsites.contact@gmail.com</a></li>
+        <li>Email: <a href="mailto:hello@day2day.ai">justwebsites.contact@gmail.com</a></li>
       </ul>
     </div>
   </section>
 
   <footer>
-   © 2025 Day2Day News Summaries. AI can make mistakes. All rights reserved. Day2Day News does not endorse any ideas, political parties or products.
+   © 2025 Day2Day News Summaries. A JusT Website. AI can make mistakes. All rights reserved. Day2Day News does not endorse any ideas, political parties or products.
   </footer>
-
-  <!-- Google AdSense Banner -->
-  <div id="adsense-banner" style="position:fixed; left:0; right:0; bottom:0; z-index:99999; background:#fff; box-shadow:0 -2px 8px rgba(0,0,0,0.08); display:flex; justify-content:center; align-items:center; min-height:60px;">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4710848797951599" crossorigin="anonymous"></script>
-  <ins class="adsbygoogle"
-     style="display:block; width:100%; min-width:320px; min-height:60px; text-align:center;"
-     data-ad-client="ca-pub-4710848797951599"
-     data-ad-slot="YOUR_SLOT_ID"
-     data-ad-format="auto"
-     data-full-width-responsive="true"></ins>
-    <script>
-      (adsbygoogle = window.adsbygoogle || []).push({});
-      // Hide banner if ad fails to load (after short delay)
-      setTimeout(function() {
-        var ins = document.querySelector('#adsense-banner ins.adsbygoogle');
-        var banner = document.getElementById('adsense-banner');
-        // If ins is empty or has zero height, hide banner
-        if (ins && banner && (ins.offsetHeight < 10 || ins.innerHTML.trim() === '')) {
-          banner.style.display = 'none';
-        }
-      }, 2000);
-    </script>
-  <style>
-    #adsense-banner:empty, #adsense-banner[style*="display: none"] {
-      display: none !important;
-    }
-  </style>
-  </div>
-
-  <script>
-    // Apply persisted dark mode on load and sync across tabs
-    document.addEventListener('DOMContentLoaded', function() {
-      try {
-        if (localStorage.getItem('darkMode') === 'true') {
-          applyDarkModeAbout();
-        }
-        // Security: ensure new-tab links don't get access to window.opener
-        document.querySelectorAll('a[target="_blank"]').forEach(a => {
-          const rel = (a.getAttribute('rel') || '').split(/\s+/).filter(Boolean);
-          if (!rel.includes('noopener')) rel.push('noopener');
-          a.setAttribute('rel', rel.join(' '));
-        });
-      } catch (e) {
-        // no-op if storage unavailable
-      }
-    });
-    // React to changes from index.html while this tab is open
-    window.addEventListener('storage', function(e) {
-      if (e.key === 'darkMode') {
-        if (e.newValue === 'true') {
-          applyDarkModeAbout();
-        } else {
-          // simplest reset to light
-          window.location.reload();
-        }
-      }
-    });
-  </script>
 </body>
 </html>
