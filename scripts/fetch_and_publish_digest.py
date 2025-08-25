@@ -2,10 +2,15 @@ import time
 start = time.time()
 import json
 import os
-from datetime import datetime, timezone
+import smtplib
+from email.mime.text import MIMEText
+from email.utils import formataddr
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
+import re
+import html as html_lib
 
 
 # --- Config helpers ---------------------------------------------------------
@@ -35,15 +40,32 @@ def load_config() -> Dict[str, str]:
     env_path = os.path.join(root, "ven.env")
     file_vals = load_env_file(env_path)
     for k, v in file_vals.items():
-        os.environ.setdefault(k, v)
+        # If the environment does not have this var or it's empty, populate from ven.env
+        if not os.environ.get(k):
+            os.environ[k] = v
+    # Debug: show which keys we parsed from ven.env
+    try:
+        parsed = ", ".join(sorted(file_vals.keys()))
+        print(f"[Config] Parsed from ven.env: {parsed}")
+    except Exception:
+        pass
+
+    # Build cfg preferring env vars; fallback to ven.env values if env is empty
+    def pick(name: str, default: str = "") -> str:
+        v = os.environ.get(name)
+        if v:
+            return v
+        return file_vals.get(name, default)
 
     cfg = {
-        "NEWS_API_URL": (env("NEWS_API_URL", "") or "").rstrip("/"),
-        "NEWS_API_KEY": env("NEWS_API_KEY", ""),
-        "SUPABASE_URL": (env("SUPABASE_URL", "") or "").rstrip("/"),
-        "SUPABASE_ANON_KEY": env("SUPABASE_ANON_KEY", ""),
-        "OLLAMA_MODEL": env("OLLAMA_MODEL", "mistral"),
-        "SUPABASE_TABLE": env("SUPABASE_TABLE", "daily_digests"),
+        # Default to World News API if not provided
+        "NEWS_API_URL": (pick("NEWS_API_URL", "https://api.worldnewsapi.com").rstrip("/")),
+        "NEWS_API_KEY": pick("NEWS_API_KEY", ""),
+        "SUPABASE_URL": (pick("SUPABASE_URL", "").rstrip("/")),
+        "SUPABASE_SERVICE_ROLE_KEY": pick("SUPABASE_SERVICE_ROLE_KEY", ""),
+        "SUPABASE_ANON_KEY": pick("SUPABASE_ANON_KEY", ""),
+        "OLLAMA_MODEL": pick("OLLAMA_MODEL", "gemma:2b"),
+        "SUPABASE_TABLE": pick("SUPABASE_TABLE", "daily_digests"),
     }
     return cfg
 
@@ -56,237 +78,355 @@ Topic = Dict[str, str]
 def get_topics() -> List[Topic]:
     # 10 requested categories (use category param where supported by the API)
     # categories: technology, business, politics, health, science, entertainment, sports, environment, education, world
-        return [
-            {"category": "world"},
-            {"category": "politics"},
-            {"category": "business"},
-            {"category": "technology"},
-            {"category": "entertainment"},
-            {"category": "sports"},
-            {"category": "health"},
-            {"category": "environment"},
-            {"category": "science"},
-            {"category": "education"},
-        ]
+    return [
+        {"category": "world"},
+        {"category": "politics"},
+        {"category": "business"},
+        {"category": "technology"},
+        {"category": "entertainment"},
+        {"category": "sports"},
+        {"category": "health"},
+        {"category": "environment"},
+        {"category": "science"},
+        {"category": "education"},
+    ]
+
+# Simple keyword heuristics to avoid off-topic picks for certain categories
+CATEGORY_KEYWORDS: Dict[str, List[str]] = {
+    "environment": [
+        "climate", "emission", "wildlife", "ecosystem", "renewable", "conservation",
+        "biodiversity", "pollution", "carbon", "deforestation", "sustainability", "habitat"
+    ],
+    "education": [
+        "school", "student", "university", "college", "curriculum", "teacher",
+        "education", "exam", "classroom", "tuition", "degree", "campus"
+    ],
+    "entertainment": [
+        "film", "movie", "tv", "series", "celebrity", "music", "concert", "festival",
+        "box office", "trailer", "actor", "actress", "netflix", "hbo"
+    ],
+}
 
 
-# --- News API fetch ---------------------------------------------------------
+def _is_article_relevant(category: Optional[str], article: Dict[str, Any]) -> bool:
+    if not category:
+        return True
+    cat = category.lower()
+    keywords = CATEGORY_KEYWORDS.get(cat)
+    if not keywords:
+        return True  # only enforce for selected categories
+    text = " ".join([
+        str(article.get("title") or ""),
+        str(article.get("description") or ""),
+        str(article.get("content") or ""),
+    ]).lower()
+    hits = sum(1 for kw in keywords if kw in text)
+    return hits >= 1
 
-def try_news_api(
-    base_url: str,
-    api_key: str,
-    query: Optional[str] = None,
-    category: Optional[str] = None,
-    language: str = "en",
-) -> Optional[Dict[str, Any]]:
-    session = requests.Session()
-    session.headers.update({
-        "User-Agent": "day-news/1.0 (+https://github.com/F9ally/day-news)",
-    })
 
-    # Use only /search endpoint with category and api_key
-    base = base_url.rstrip("/")
-    url = f"{base}/articles"
+
+# NewsData.io API endpoint and key
+NEWSDATA_API_URL = "https://newsdata.io/api/1/latest"
+NEWSDATA_API_KEY = os.getenv("NEWSDATA_API_KEY")
+
+def try_newsdata_api(category, page=1):
     params = {
+        "apikey": NEWSDATA_API_KEY,
+        "language": "en",
         "category": category,
-        "limit": 1,
-        "offset": 0,
-        "language": language,
-        "api_key": api_key,
+        "size": 10,  # free user default
+        "page": page,
     }
-    print(f"Requesting: {url} with params: {params}")
-    try:
-        r = session.get(url, params=params, timeout=10)
-        print(f"Response status: {r.status_code}")
-        if r.status_code != 200:
-            print(f"Error response: {r.text}")
+    response = requests.get(NEWSDATA_API_URL, params=params)
+    quota_left = response.headers.get("X-RateLimit-Remaining")
+    print(f"Quota left: {quota_left}")
+    if response.status_code == 200:
+        data = response.json()
+        articles = data.get("results", [])
+        if articles:
+            return articles[0]  # return first article
+        else:
+            print(f"No articles found for category {category}")
             return None
-        data = r.json()
-        print(f"Response data: {json.dumps(data)[:500]}")
-
-        article = None
-        if isinstance(data, dict) and isinstance(data.get("articles"), list) and data["articles"]:
-            article = data["articles"][0]
-
-        if not article:
-            print("No article found in response.")
-            return None
-
-        title = article.get("title") or "Untitled"
-        description = article.get("description") or ""
-        url_field = article.get("link")
-        published_at = article.get("published_date")
-        content = article.get("content") or description
-
-        return {
-            "title": str(title) if title else "Untitled",
-            "description": str(description) if description else "",
-            "url": str(url_field) if url_field else None,
-            "published_at": str(published_at) if published_at else None,
-            "content": str(content) if content else "",
-        }
-    except requests.RequestException as e:
-        print(f"RequestException: {e}")
-        return None
-    except ValueError as e:
-        print(f"ValueError: {e}")
+    else:
+        print(f"Error: {response.status_code} {response.text}")
         return None
 
-def try_news_api_with_retries(base_url, api_key, category, language="en", max_attempts=3):
-    for attempt in range(1, max_attempts + 1):
-        print(f"[{category}] Attempt {attempt} of {max_attempts}")
-        result = try_news_api(base_url, api_key, query=None, category=category, language=language)
-        if result:
-            return result
+def try_newsdata_api_with_retries(category, max_attempts=3):
+    seen_urls = set()
+    for attempt in range(max_attempts):
+        article = try_newsdata_api(category, page=attempt+1)
+        if article and article.get("link") not in seen_urls:
+            seen_urls.add(article.get("link"))
+            return article
         print(f"[{category}] No article found, retrying...")
     print(f"[{category}] All attempts failed.")
     return None
-    """
-    Fetch a single article for the given query using a few common patterns.
-    Returns a normalized article dict or None.
-
-    Normalized keys: title, description, url, published_at, content
-    """
-    if not base_url:
-        return None
-
-    session = requests.Session()
-    session.headers.update({
-        "User-Agent": "day-news/1.0 (+https://github.com/F9ally/day-news)",
-    })
-
-    # Use only /search endpoint with category and api_key
-    base = base_url.rstrip("/")
-    url = f"{base}/search"
-    params = {
-        "category": category,
-        "api_key": api_key,
-        "page_size": 1,
-        "language": language,
-    }
-    print(f"Requesting: {url} with params: {params}")
-    try:
-        r = session.get(url, params=params, timeout=10)
-        print(f"Response status: {r.status_code}")
-        if r.status_code != 200:
-            print(f"Error response: {r.text}")
-            return None
-        data = r.json()
-        print(f"Response data: {json.dumps(data)[:500]}")
-
-        article = None
-        if isinstance(data, list) and data:
-            article = data[0]
-        elif isinstance(data, dict):
-            if isinstance(data.get("articles"), list) and data["articles"]:
-                article = data["articles"][0]
-            elif isinstance(data.get("news"), list) and data["news"]:
-                article = data["news"][0]
-            elif isinstance(data.get("result"), list) and data["result"]:
-                article = data["result"][0]
-            elif isinstance(data.get("results"), list) and data["results"]:
-                article = data["results"][0]
-            elif isinstance(data.get("data"), list) and data["data"]:
-                article = data["data"][0]
-
-        if not article:
-            print("No article found in response.")
-            return None
-
-        title = article.get("title") or article.get("name") or "Untitled"
-        description = article.get("description") or article.get("summary") or ""
-        url_field = (
-            article.get("url")
-            or article.get("link")
-            or article.get("source_url")
-        )
-        published_at = (
-            article.get("publishedAt")
-            or article.get("published_at")
-            or article.get("date")
-            or article.get("pubDate")
-        )
-        content = (
-            article.get("content")
-            or article.get("full_content")
-            or article.get("text")
-            or description
-        )
-
-        return {
-            "title": str(title) if title else "Untitled",
-            "description": str(description) if description else "",
-            "url": str(url_field) if url_field else None,
-            "published_at": str(published_at) if published_at else None,
-            "content": str(content) if content else "",
-        }
-    except requests.RequestException as e:
-        print(f"RequestException: {e}")
-        return None
-    except ValueError as e:
-        print(f"ValueError: {e}")
-        return None
 
 
 # --- Summarization via Ollama ----------------------------------------------
 
-def summarize_with_ollama(model: str, title: str, content: str, url: Optional[str]) -> str:
+def summarize_with_ollama(model: str, topic: str, title: str, content: str, url: Optional[str]) -> str:
     """
     Use local Ollama (Mistral) to summarize a single article.
     Falls back to a simple heuristic summary if ollama isn't reachable.
     """
     prompt = f"""
-    Summarize the following news article clearly and concisely in 3-5 bullet points.
-    Include 1 short headline style title at the top.
-    Keep it factual, neutral, and under 120 words total.
+You are a precise news editor. Summarize the article strictly for the category: {topic}.
 
-    Title: {title}
-    URL: {url or 'N/A'}
+Hard rules:
+- Use third-person only (no first-person like "I", "we").
+- Keep focus on the given category; do not include other category labels (no "Politics:", "Economy:").
+- Be factual and concise; avoid speculation.
+- No questions to the reader; no calls to action.
 
-    Article content:
-    {content}
-    """.strip()
+Return ONLY in this format (no extra text):
+Headline: <a concise headline for this article, <= 120 chars>
+Summary:
+• point 1 (a short, factual sentence)
+• point 2 (a short, factual sentence)
+• point 3 (optional; include only if meaningful)
+
+Title: {title}
+URL: {url or 'N/A'}
+Article content (truncated):
+{(content[:4000] + '...') if content and len(content) > 4000 else (content or '')}
+""".strip()
 
     for attempt in range(1, 4):
+        print(f"[Ollama] Summarizing (attempt {attempt}) for: {title}")
+        import subprocess
         try:
-            print(f"[Ollama] Summarizing (attempt {attempt}) for: {title}")
+            # Use the CLI: ollama run gemma:2b "<prompt>"
+            cmd = ["ollama", "run", model or "gemma:2b", prompt]
+            result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", timeout=60)
+            # If encoding fails, try decoding manually
+            output = result.stdout
+            if not output:
+                try:
+                    output = result.stdout.decode("utf-8", errors="replace") if hasattr(result.stdout, 'decode') else str(result.stdout)
+                except Exception as e_dec:
+                    print(f"[Ollama] CLI decode error: {repr(e_dec)}")
+                    output = str(result.stdout)
+            if result.returncode == 0 and output.strip():
+                print(f"[Ollama] Success via CLI for: {title}")
+                return output.strip()
+            else:
+                err = result.stderr
+                if not err:
+                    try:
+                        err = result.stderr.decode("utf-8", errors="replace") if hasattr(result.stderr, 'decode') else str(result.stderr)
+                    except Exception as e_dec:
+                        print(f"[Ollama] CLI stderr decode error: {repr(e_dec)}")
+                        err = str(result.stderr)
+                print(f"[Ollama] CLI failed: {err.strip()}")
+        except Exception as e_cli:
+            print(f"[Ollama] CLI call failed with error: {repr(e_cli)}")
+
+        # Fallback to Python client chat() if CLI fails
+        try:
             import ollama  # type: ignore
             resp = ollama.chat(
-                model="mistral:7b",
+                model=model or "gemma:2b",
                 messages=[
                     {"role": "system", "content": "You are a concise news editor."},
                     {"role": "user", "content": prompt},
                 ],
-                options={"temperature": 0.2},
+                options={"temperature": 0.1, "num_predict": 256},
             )
-            out = resp.get("message", {}).get("content")
+            out = resp.get("message", {}).get("content") if isinstance(resp, dict) else None
             if out:
-                print(f"[Ollama] Success for: {title}")
+                print(f"[Ollama] Success via chat() for: {title}")
                 return out.strip()
-        except Exception as e:
-            print(f"[Ollama] Error (attempt {attempt}) for {title}: {e}")
+            else:
+                print(f"[Ollama] chat() returned no content for: {title}")
+        except Exception as e_chat:
+            print(f"[Ollama] chat() failed with error: {repr(e_chat)}")
+        print(f"[Ollama] Tip: Ensure the Ollama server is running (e.g., start the daemon) and the model is available: '{model or 'gemma:2b'}'.")
     print(f"[Ollama] All attempts failed for: {title}")
-    return f"{title}\n- [ERROR: Could not summarize with Mistral 7B after 3 attempts]"
+    return f"Headline: {title}\nSummary:\n• [ERROR: Could not summarize with Gemma 2B after 3 attempts]"
 
 
 # --- Formatting -------------------------------------------------------------
 
-def compile_digest(summaries: List[Tuple[str, str]]) -> str:
-    """
-    Given a list of (topic_title, summary_text), compile into a single numbered digest
-    with each entry as a paragraph, titled and numbered.
-    """
-    paras = []
-    for i, (topic_title, summary) in enumerate(summaries, start=1):
-        paras.append(f"{i}. {topic_title}\n{summary.strip()}")
-    return "\n\n".join(paras)
+def _strip_markdown(text: str) -> str:
+    """Remove common markdown syntax and collapse whitespace."""
+    if not text:
+        return ""
+    t = text
+    # Remove fenced code blocks
+    t = re.sub(r"```[\s\S]*?```", " ", t)
+    # Strip headings like #, ## at start of lines
+    t = re.sub(r"^\s*#{1,6}\s+", "", t, flags=re.MULTILINE)
+    # Bold/italic markers
+    t = t.replace("**", "").replace("__", "").replace("*", "").replace("_", "")
+    # Inline code backticks
+    t = t.replace("`", "")
+    # Replace markdown bullets with separators
+    t = re.sub(r"^[\s>*\-•]+", "• ", t, flags=re.MULTILINE)
+    # Remove stray markdown links [text](url) -> text
+    t = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", t)
+    # Collapse multiple newlines to a single space
+    t = re.sub(r"\s+", " ", t).strip()
+    return t
 
 
+def _clean_for_html(summary: str) -> str:
+    """Sanitize model output for safe HTML embedding: strip markdown and escape HTML."""
+    # First, strip markdown and decode any HTML entities the model may have emitted (e.g., &#x27;)
+    clean = _strip_markdown(summary)
+    clean = html_lib.unescape(clean)
+    # Escape any HTML to avoid injecting tags
+    clean = html_lib.escape(clean)
+    return clean
+
+
+def _is_recent(published_at: Optional[str], hours: int = 30) -> bool:
+    if not published_at:
+        return False
+    try:
+        # Attempt to parse common ISO formats
+        s = published_at.strip()
+        # Normalize 'Z' suffix
+        if s.endswith('Z'):
+            s = s[:-1] + '+00:00'
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        age = datetime.now(timezone.utc) - dt.astimezone(timezone.utc)
+        return age.total_seconds() <= hours * 3600
+    except Exception:
+        return False
+
+
+def _is_digest_day_utc(published_at: Optional[str]) -> bool:
+    if not published_at:
+        return False
+    try:
+        s = published_at.strip()
+        if s.endswith('Z'):
+            s = s[:-1] + '+00:00'
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        dt_utc = dt.astimezone(timezone.utc)
+        # For NewsData.io, just check if published within last 48 hours
+        age = datetime.now(timezone.utc) - dt_utc
+        return age.total_seconds() <= 48 * 3600
+    except Exception:
+        return False
+
+
+def _extract_headline_and_points(cleaned_text: str) -> Tuple[str, List[str]]:
+    """Parse the model output to extract the Headline and bullet points."""
+    headline = ""
+    points: List[str] = []
+    # Find Headline: line
+    m = re.search(r"Headline:\s*(.+)", cleaned_text, re.IGNORECASE)
+    if m:
+        headline = m.group(1).strip()
+    # Find Summary section and bullets
+    # Accept both '•' bullets and lines starting with hyphen/asterisk
+    summary_part = cleaned_text
+    sm = re.search(r"Summary:\s*(.*)$", cleaned_text, re.IGNORECASE | re.DOTALL)
+    if sm:
+        summary_part = sm.group(1).strip()
+    for line in summary_part.split("\n"):
+        ln = line.strip()
+        if not ln:
+            continue
+        # Normalize bullet markers
+        ln = re.sub(r"^(?:[\-\*\u2022]|•)\s*", "", ln)
+        points.append(ln)
+    # If no bullets found but text exists, split by '•'
+    if not points and "•" in summary_part:
+        points = [s.strip() for s in summary_part.split("•") if s.strip()]
+    return headline, points
+
+
+def compile_digest(items: List[Dict[str, str]]) -> str:
+    """
+    Given a list of items with keys: topic (title-cased), title, summary.
+    Build safe HTML with topic header, bold article headline, and per-line bullet paragraphs.
+    """
+    topic_emojis = {
+        "world": "🌍",
+        "politics": "📰",
+        "business": "💰",
+        "technology": "💻",
+        "entertainment": "🎭",
+        "sports": "🏅",
+        "health": "🩺",
+        "environment": "🌱",
+        "science": "🔬",
+        "education": "🎓",
+    }
+    seen = set()
+    html_blocks = []
+    # Helper to strip leading topic labels the model may add
+    topic_label_re = re.compile(r"^(World|Politics|Business|Technology|Entertainment|Sports|Health|Environment|Science|Education)\s*:\s*", re.IGNORECASE)
+    for it in items:
+        topic_title = it.get("topic", "General")
+        summary = it.get("summary", "")
+        art_title = it.get("title", "Untitled")
+        key = topic_title.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        emoji = topic_emojis.get(key, "❓")
+        # Skip error summaries entirely from the website output
+        if "[ERROR:" in summary:
+            continue
+        # Remove a leading topic label if present
+        no_label = topic_label_re.sub("", summary.strip())
+        safe = _clean_for_html(no_label)
+        # Extract headline + bullet points from the cleaned text (already HTML-escaped)
+        headline, points = _extract_headline_and_points(safe)
+        # Fallback to original article title as headline if parsing failed or headline empty
+        if not headline:
+            headline = html_lib.escape(art_title or "Untitled")
+        # Remove points that duplicate the headline
+        def _norm(x: str) -> str:
+            return re.sub(r"[\s\.;:\-]+$", "", x.strip().lower())
+        norm_head = _norm(headline)
+        seen_pts = set()
+        deduped: List[str] = []
+        for p in points:
+            np = _norm(p)
+            if not np or np == norm_head or np in seen_pts:
+                continue
+            seen_pts.add(np)
+            deduped.append(p)
+        points = deduped
+        # Build paragraphs for points
+        point_ps = "".join(f"<p>{p}</p>" for p in points if p)
+        safe_url = None
+        if it.get("url"):
+            try:
+                safe_url = html_lib.escape(str(it.get("url")), quote=True)
+            except Exception:
+                safe_url = None
+        # Headings with optional links
+        if safe_url:
+            h2_html = f'<h2><a href="{safe_url}" target="_blank" rel="noopener noreferrer">{emoji} {html_lib.escape(topic_title)}</a></h2>'
+            h3_html = f'<h3 class="digest-headline"><a href="{safe_url}" target="_blank" rel="noopener noreferrer">{headline}</a></h3>'
+        else:
+            h2_html = f'<h2>{emoji} {html_lib.escape(topic_title)}</h2>'
+            h3_html = f'<h3 class="digest-headline">{headline}</h3>'
+        block = (
+            f'<section class="digest-topic">'
+            f'{h2_html}'
+            f'{h3_html}'
+            f'<div class="digest-points">{point_ps}</div>'
+            f'</section>'
+        )
+        html_blocks.append(block)
+    return "\n".join(html_blocks)
 # --- Supabase insert --------------------------------------------------------
 
 def upsert_supabase_digest(
     base_url: str,
-    anon_key: str,
+    service_role_key: str,
     table: str,
     compiled: str,
     items: List[Dict[str, Any]],
@@ -294,16 +434,19 @@ def upsert_supabase_digest(
     if not base_url.startswith("http"):
         return False, "Invalid SUPABASE_URL; must start with http(s)."
 
-    url = f"{base_url}/rest/v1/{table}?return=representation"
+    url = f"{base_url}/rest/v1/{table}"
     headers = {
-        "apikey": anon_key,
-        "Authorization": f"Bearer {anon_key}",
+        "apikey": service_role_key,
+        "Authorization": f"Bearer {service_role_key}",
         "Content-Type": "application/json",
-        "Prefer": "resolution=merge-duplicates",
+        # Ask PostgREST to return the inserted row and merge duplicates by a unique constraint if present
+        "Prefer": "return=representation,resolution=merge-duplicates",
     }
 
+    # Store canonical ISO date for reliable filtering on the website
+    formatted_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     payload = {
-        "date": datetime.now(timezone.utc).date().isoformat(),
+        "date": formatted_date,
         "compiled": compiled,
         "items": items,
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -324,21 +467,48 @@ def upsert_supabase_digest(
 def save_local_fallback(compiled: str, items: List[Dict[str, Any]]) -> str:
     out_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "out")
     os.makedirs(out_dir, exist_ok=True)
-    date_str = datetime.now().strftime("%Y-%m-%d")
-    txt_path = os.path.join(out_dir, f"digest_{date_str}.txt")
+    date_str = datetime.now().strftime("%d %B %Y")
+    html_path = os.path.join(out_dir, f"digest_{date_str}.html")
     json_path = os.path.join(out_dir, f"digest_{date_str}.json")
-    with open(txt_path, "w", encoding="utf-8") as f:
-        f.write(compiled)
+    # Wrap the digest in a basic HTML template
+    html_template = f"""
+<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <title>Day News Digest - {date_str}</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; background: #fafafa; color: #222; margin: 2em; }}
+        .digest-topic {{ margin-bottom: 2em; padding: 1em; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #eee; }}
+        h2 {{ margin-top: 0; font-size: 1.3em; }}
+        .digest-error {{ color: #b00; font-weight: bold; }}
+    </style>
+</head>
+<body>
+    <h1>Day News Digest <span style=\"font-size:0.7em;color:#888\">{date_str}</span></h1>
+    {compiled}
+</body>
+</html>
+"""
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(html_template)
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(items, f, ensure_ascii=False, indent=2)
-    return txt_path
+    return html_path
 
 
 # --- Main -------------------------------------------------------------------
 
 def main() -> int:
     cfg = load_config()
-    missing = [k for k in ("NEWS_API_URL", "NEWS_API_KEY", "SUPABASE_URL", "SUPABASE_ANON_KEY") if not cfg.get(k)]
+    def _mask(val: Optional[str]) -> str:
+        if not val:
+            return "<empty>"
+        v = str(val)
+        return (v[:4] + "..." + v[-4:]) if len(v) > 8 else "<short>"
+    print(f"[Config] SUPABASE_URL={cfg.get('SUPABASE_URL','')} TABLE={cfg.get('SUPABASE_TABLE','')} KEY={_mask(cfg.get('SUPABASE_SERVICE_ROLE_KEY'))}")
+    missing = [k for k in ("NEWS_API_URL", "NEWS_API_KEY", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY") if not cfg.get(k)]
     if missing:
         print(f"Missing required config values: {', '.join(missing)}. Check ven.env.")
         # continue anyway; user may want to run partially
@@ -347,9 +517,11 @@ def main() -> int:
 
     fetched: List[Dict[str, Any]] = []
     failed_categories: List[str] = []
+    seen_urls: set = set()
+    last_quota_seen: Optional[str] = None
     for t in topics:
         cat = t.get("category")
-        article = try_news_api_with_retries(cfg["NEWS_API_URL"], cfg["NEWS_API_KEY"], category=cat, language="en", max_attempts=3)
+        article = try_newsdata_api_with_retries(cat, max_attempts=3)
         if not article:
             failed_categories.append(cat)
             article = {
@@ -359,6 +531,11 @@ def main() -> int:
                 "published_at": None,
                 "content": "",
             }
+        else:
+            if article.get("url"):
+                seen_urls.add(article["url"])
+            if article.get("quota_left") is not None:
+                last_quota_seen = str(article["quota_left"])
         fetched.append({
             "topic": cat,
             **article,
@@ -369,61 +546,73 @@ def main() -> int:
         send_failure_email(failed_categories)
 
     # Summarize each
-    summaries: List[Tuple[str, str]] = []
     items_for_supabase: List[Dict[str, Any]] = []
     for item in fetched:
         topic_title = item["topic"].replace("-", "/").title()
-        summary = summarize_with_ollama(cfg["OLLAMA_MODEL"], item.get("title", "Untitled"), item.get("content", ""), item.get("url"))
-        summaries.append((topic_title, summary))
-        items_for_supabase.append({
-            "topic": topic_title,
-            "title": item.get("title"),
-            "url": item.get("url"),
-            "published_at": item.get("published_at"),
-            "summary": summary,
-        })
+        summary = summarize_with_ollama(
+            cfg.get("OLLAMA_MODEL", "gemma:2b"),
+            topic_title,
+            item.get("title", "Untitled"),
+            item.get("content", ""),
+            item.get("url"),
+        )
+        # Only include successful summaries in persisted items
+        if "[ERROR:" not in summary:
+            items_for_supabase.append({
+                "topic": topic_title,
+                "title": item.get("title"),
+                "url": item.get("url"),
+                "published_at": item.get("published_at"),
+                "summary": summary,
+            })
 
-    compiled = compile_digest(summaries)
+    compiled = compile_digest(items_for_supabase)
 
-    # Insert into Supabase
+    # Insert into Supabase even if some summaries failed; we exclude failures from items/compiled
     ok, msg = upsert_supabase_digest(
-        cfg["SUPABASE_URL"], cfg["SUPABASE_ANON_KEY"], cfg["SUPABASE_TABLE"], compiled, items_for_supabase
+        cfg["SUPABASE_URL"], cfg["SUPABASE_SERVICE_ROLE_KEY"], cfg["SUPABASE_TABLE"], compiled, items_for_supabase
     )
     print(msg)
+    if not ok:
+        print("Note: Supabase insert failed. Ensure your SUPABASE_URL is like https://<ref>.supabase.co and the key/table are valid.")
 
     # Always save local fallback
     out_path = save_local_fallback(compiled, items_for_supabase)
     print(f"Saved local digest to: {out_path}")
 
-    if not ok:
-        print("Note: Supabase insert failed. Ensure your SUPABASE_URL is like https://<ref>.supabase.co and the anon key is valid, and that the table exists.")
-        print("Expected table schema (SQL):\n"
-              "create table if not exists public.daily_digests (\n"
-              "  id uuid primary key default gen_random_uuid(),\n"
-              "  created_at timestamptz default now(),\n"
-              "  date date,\n"
-              "  compiled text,\n"
-              "  items jsonb\n"
-              ");")
+    # Show remaining World News API daily quota if observed
+    if last_quota_seen is not None:
+        print(f"[API] X-API-Quota-Left today: {last_quota_seen}")
 
     print(f"Total runtime: {time.time() - start:.2f} seconds")
     return 0
 
 
 def send_failure_email(failed_categories):
-    sender = "justwebsites.contact@gmail.com"
-    recipient = "justwebsites.contact@gmail.com"
     subject = "Day News Digest: API Failure Notification"
-    body = f"The following categories failed to fetch news after 3 attempts:\n\n" + ", ".join(failed_categories)
+    body = (
+        "The following categories failed to fetch news after 3 attempts:\n\n" + ", ".join(failed_categories)
+    )
+
+    smtp_host = os.environ.get("SMTP_HOST")
+    smtp_port = int(os.environ.get("SMTP_PORT", "465"))
+    smtp_user = os.environ.get("SMTP_USER")
+    smtp_pass = os.environ.get("SMTP_PASS")
+    sender = os.environ.get("SMTP_SENDER")
+    recipient = os.environ.get("SMTP_TO")
+
+    if not all([smtp_host, smtp_user, smtp_pass, sender, recipient]):
+        print("Email notification skipped: SMTP credentials are not configured.")
+        return
+
     msg = MIMEText(body)
     msg["Subject"] = subject
     msg["From"] = formataddr(("Day News", sender))
     msg["To"] = recipient
 
     try:
-        # For Gmail, you may need an app password and enable less secure apps
-        smtp = smtplib.SMTP_SSL("smtp.gmail.com", 465)
-        smtp.login(sender, "YOUR_APP_PASSWORD_HERE")
+        smtp = smtplib.SMTP_SSL(smtp_host, smtp_port)
+        smtp.login(smtp_user, smtp_pass)
         smtp.sendmail(sender, [recipient], msg.as_string())
         smtp.quit()
         print(f"Failure notification sent to {recipient}")
