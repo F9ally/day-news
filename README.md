@@ -6,7 +6,7 @@ Simple static site plus an automation script to fetch news, summarize with local
 
 This workspace includes a Python script that:
 
-- Fetches 1 recent news article per topic (10 topics)
+- Fetches 1 recent news article per topic (9 topics)
 - Summarizes each using local Ollama Mistral (7B) if available
 - Compiles a single numbered digest
 - Inserts the digest into a Supabase table (`daily_digests` by default)
@@ -14,7 +14,7 @@ This workspace includes a Python script that:
 Files:
 - `scripts/fetch_and_publish_digest.py` – main script
 - `requirements.txt` – Python dependencies
-- `ven.env` – Provide `NEWS_API_URL`, `NEWS_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`. Optional: `OLLAMA_MODEL` (default `mistral`), `SUPABASE_TABLE` (default `daily_digests`).
+- `ven.env` – Provide `NEWS_API_URL`, `NEWS_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. Optional: `NEWS_LANG`, `NEWS_COUNTRY`, `NEWS_MAX`, `NEWS_NULLABLE`, `NEWS_QUERY`, `NEWS_FROM`, `NEWS_TO`, `OLLAMA_MODEL` (default `mistral`), `SUPABASE_TABLE` (default `daily_digests`).
 
 Expected Supabase table schema (SQL):
 

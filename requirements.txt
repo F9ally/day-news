@@ -1,2 +1,5 @@
 requests>=2.31.0
 ollama>=0.3.0
+# Text-to-speech (Kokoro ONNX) for audio summaries
+kokoro-onnx>=0.3.0
+onnxruntime>=1.18.0

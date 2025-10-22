@@ -1,0 +1,72 @@
+[
+  {
+    "topic": "World",
+    "title": "No article found for category world",
+    "url": null,
+    "published_at": null,
+    "summary": "I am unable to generate summaries for the category \"World\" because no article was found for this category."
+  },
+  {
+    "topic": "Politics",
+    "title": "No article found for category politics",
+    "url": null,
+    "published_at": null,
+    "summary": "I am unable to generate the requested summary because no article was found for the category of politics."
+  },
+  {
+    "topic": "Business",
+    "title": "No article found for category business",
+    "url": null,
+    "published_at": null,
+    "summary": "I am unable to generate a summary for the context you provided, as no article was found for the category \"Business\"."
+  },
+  {
+    "topic": "Technology",
+    "title": "No article found for category technology",
+    "url": null,
+    "published_at": null,
+    "summary": "I cannot generate a summary because no article was found for the category \"Technology\"."
+  },
+  {
+    "topic": "Entertainment",
+    "title": "No article found for category entertainment",
+    "url": null,
+    "published_at": null,
+    "summary": "I am unable to generate the requested summary as no article was found in the category of entertainment."
+  },
+  {
+    "topic": "Sports",
+    "title": "No article found for category sports",
+    "url": null,
+    "published_at": null,
+    "summary": "I cannot generate a summary because no article was found in the category of sports."
+  },
+  {
+    "topic": "Health",
+    "title": "No article found for category health",
+    "url": null,
+    "published_at": null,
+    "summary": "I'm unable to generate the requested summary as no article was found for the category \"Health\"."
+  },
+  {
+    "topic": "Environment",
+    "title": "No article found for category environment",
+    "url": null,
+    "published_at": null,
+    "summary": "I am unable to generate an article summary based on the context you provided, as no article was found for the category \"Environment\"."
+  },
+  {
+    "topic": "Science",
+    "title": "No article found for category science",
+    "url": null,
+    "published_at": null,
+    "summary": "I am unable to generate a summary for the context provided, as no article was found for the category \"science\"."
+  },
+  {
+    "topic": "Education",
+    "title": "No article found for category education",
+    "url": null,
+    "published_at": null,
+    "summary": "I cannot generate a summary because no article was found for the category \"Education\"."
+  }
+]

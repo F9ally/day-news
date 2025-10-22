@@ -73,65 +73,6 @@
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4710848797951599"
      crossorigin="anonymous"></script>
   <style>
-    /* Responsive sidebar buttons and close icon */
-    #preferences-sidebar .topic-toggle {
-      padding: 0.35rem 1rem;
-      font-size: 0.97rem;
-      border-radius: 0.5rem;
-      transition: background 0.2s, box-shadow 0.2s;
-      min-height: 2rem;
-    }
-    #preferences-sidebar .topic-toggle:active,
-    #preferences-sidebar .topic-toggle.selected {
-      background: #e8f0fe;
-      box-shadow: 0 2px 8px rgba(66,133,244,0.08);
-    }
-    #preferences-sidebar button#close-sidebar {
-      font-size: 2rem;
-      padding: 0.3rem 0.7rem;
-      border-radius: 50%;
-      transition: background 0.2s;
-      background: none;
-      color: #4285f4;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    #preferences-sidebar button#close-sidebar:active {
-      background: #e8f0fe;
-    }
-    @media (min-width: 601px) {
-      #preferences-sidebar .topics-scroll {
-        overflow-y: auto;
-      }
-    }
-    @media (max-width: 600px) {
-      #preferences-sidebar {
-        width: 100vw !important;
-        min-width: 0 !important;
-        padding: 1rem 0.5rem !important;
-        right: -100vw !important;
-        visibility: hidden;
-        opacity: 0;
-        transition: right 0.3s, opacity 0.3s;
-      }
-      body.sidebar-open #preferences-sidebar {
-        right: 0 !important;
-        visibility: visible;
-        opacity: 1;
-        width: 80vw !important;
-        min-width: 0 !important;
-        max-width: 400px !important;
-      }
-      #preferences-sidebar .topic-toggle {
-        font-size: 0.95rem;
-        padding: 0.35rem 0.5rem;
-      }
-      #preferences-sidebar button#close-sidebar {
-        font-size: 2.2rem;
-        padding: 0.2rem 0.5rem;
-      }
-    }
     * {
       margin: 0;
       padding: 0;
@@ -159,7 +100,7 @@
     #today h2 {
       font-weight: 400;
       color: #222;
-      text-shadow: 0 1px 2px rgba(66,133,244,0.07);
+    text-shadow: 0 1px 2px rgba(66,133,244,0.07); color: #222; font-weight: 600; letter-spacing: 0.01em;
     }
     input[type="text"] {
       width: 100%;
@@ -303,9 +244,33 @@
       transition: background 0.2s;
     }
     .archive-toggle:active { background: #d2e3fc; }
+  /* Dark mode persistent styles for dynamically injected content */
+  body.dark .digest-topic h2 { color: #e6edf3 !important; }
+  body.dark .digest-topic p { color: #e6edf3 !important; }
+  body.dark #today h2 { color: #e6edf3 !important; }
+  body.dark header h1 { color: #e6edf3 !important; }
+    body.dark #archive-summaries .archive-summary-expanded,
+    body.dark #archive-summaries .archive-summary-collapsed {
+      background: #222 !important;
+      color: #e6edf3 !important;
+      border-color: #444 !important;
+    }
+    body.dark #archive-summaries .card {
+      background: #222 !important;
+      color: #e6edf3 !important;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+  /* Styles for compiled digest structure */
+  .digest-topic { margin: 1rem 0; }
+  .digest-topic h3.digest-headline { font-size: 1.05rem; font-weight: 700; margin: 0.25rem 0 0.5rem; color: #111; }
+  .digest-topic .digest-points p { margin: 0.35rem 0; }
+  body.dark .digest-topic h3.digest-headline { color: #e6edf3; }
+  .digest-topic h2 a, .digest-topic h3 a { color: inherit; text-decoration: none; }
+  .digest-topic h2 a:hover, .digest-topic h3 a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
+  <!-- Supabase credentials injected at runtime by server or build tool -->
   <div class="corner-links">
     <a href="about.html" class="corner-link about">
       <span class="rect-icon"></span>
@@ -322,410 +287,107 @@
     <p>Stay informed and save time!</p>
   </header>
   <section id="today">
-    <h2 style="display: flex; align-items: center; justify-content: center; gap: 1rem; text-align: center;">
-      <button id="play-audio" title="Play audio summary"
-        style="
-          background: #e8f0fe;
-          border: none;
-          border-radius: 50%;
-          width: 2rem;
-          height: 2rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          box-shadow: 0 2px 8px rgba(66,133,244,0.06);
-          transition: background 0.2s;
-        "
-        onmouseover="this.style.background='#d2e3fc'"
-        onmouseout="this.style.background='#e8f0fe'"
-        ontouchstart="this.style.background='#d2e3fc'"
-        ontouchend="this.style.background='#e8f0fe'"
-      >
-        <i class="fa-solid fa-play" style="font-size: 1.2rem; color: #4285f4;"></i>
-      </button>
-      Today's Summary
-      <button id="preferences-btn" title="Preferences"
-        style="
-          background: #e8f0fe;
-          border: none;
-          border-radius: 50%;
-          width: 2rem;
-          height: 2rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          margin-left: 1rem;
-          box-shadow: 0 2px 8px rgba(66,133,244,0.06);
-          transition: background 0.2s;
-        "
-        onmouseover="this.style.background='#d2e3fc'"
-        onmouseout="this.style.background='#e8f0fe'"
-        ontouchstart="this.style.background='#d2e3fc'"
-        ontouchend="this.style.background='#e8f0fe'"
-      >
-        <i class="fa-solid fa-gear" style="font-size: 1.2rem; color: #4285f4;"></i>
-      </button>
+    <h2 style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; position: relative; width: 100%; padding: 0 1rem;">
+      <!-- Play, Dark Mode, and Share buttons on the left -->
+      <div style="display: flex; align-items: center; gap: 0.5rem; position: absolute; left: 0;">
+        <button id="play-audio" title="Play audio summary"
+          style="
+            background: #e8f0fe;
+            border: none;
+            border-radius: 50%;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(66,133,244,0.06);
+            transition: background 0.2s;
+          "
+          onmouseover="this.style.background='#d2e3fc'"
+          onmouseout="this.style.background='#e8f0fe'"
+          ontouchstart="this.style.background='#d2e3fc'"
+          ontouchend="this.style.background='#e8f0fe'"
+        >
+          <i class="fa-solid fa-play" style="font-size: 1.2rem; color: #4285f4;"></i>
+        </button>
+        <button id="dark-mode-btn" title="Toggle dark mode"
+          style="
+            background: #e8f0fe;
+            border: none;
+            border-radius: 50%;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(66,133,244,0.06);
+            transition: background 0.2s;
+          "
+          onmouseover="this.style.background='#d2e3fc'"
+          onmouseout="this.style.background='#e8f0fe'"
+          ontouchstart="this.style.background='#d2e3fc'"
+          ontouchend="this.style.background='#e8f0fe'"
+        >
+          <i id="dark-mode-icon" class="fa-solid fa-moon" style="font-size: 1.2rem; color: #4285f4;"></i>
+        </button>
+        <button id="share-btn" title="Share today's summary"
+          style="
+            background: #e8f0fe;
+            border: none;
+            border-radius: 50%;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(66,133,244,0.06);
+            transition: background 0.2s;
+          "
+          onmouseover="this.style.background='#d2e3fc'"
+          onmouseout="this.style.background='#e8f0fe'"
+          ontouchstart="this.style.background='#d2e3fc'"
+          ontouchend="this.style.background='#e8f0fe'"
+        >
+          <i class="fa-solid fa-share" style="font-size: 1.2rem; color: #4285f4;"></i>
+        </button>
+      </div>
+      <!-- Centered title -->
+      <span id="summary-title">Today's Summary</span>
+      <!-- Navigation buttons (Back, Forward, Today) on the right -->
+      <div style="display: flex; align-items: center; gap: 0.5rem; position: absolute; right: 0;">
+        <button id="back-btn" title="View previous day" style="display: none; background: #e8f0fe; border: none; border-radius: 50%; width: 2rem; height: 2rem; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(66,133,244,0.06); transition: background 0.2s;" onmouseover="this.style.background='#d2e3fc'" onmouseout="this.style.background='#e8f0fe'" ontouchstart="this.style.background='#d2e3fc'" ontouchend="this.style.background='#e8f0fe'">
+          <i class="fa-solid fa-chevron-left" style="font-size: 1.2rem; color: #4285f4;"></i>
+        </button>
+        <button id="forward-btn" title="View next day" style="display: none; background: #e8f0fe; border: none; border-radius: 50%; width: 2rem; height: 2rem; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(66,133,244,0.06); transition: background 0.2s;" onmouseover="this.style.background='#d2e3fc'" onmouseout="this.style.background='#e8f0fe'" ontouchstart="this.style.background='#d2e3fc'" ontouchend="this.style.background='#e8f0fe'">
+          <i class="fa-solid fa-chevron-right" style="font-size: 1.2rem; color: #4285f4;"></i>
+        </button>
+        <button id="today-btn" title="Go back to today's summary" style="display: none; background: #e8f0fe; border: none; border-radius: 0.5rem; padding: 0.4rem 0.8rem; cursor: pointer; box-shadow: 0 2px 8px rgba(66,133,244,0.06); transition: background 0.2s; font-size: 0.9rem; font-weight: 600; color: #4285f4;" onmouseover="this.style.background='#d2e3fc'" onmouseout="this.style.background='#e8f0fe'" ontouchstart="this.style.background='#d2e3fc'" ontouchend="this.style.background='#e8f0fe'">
+          Today
+        </button>
+      </div>
     </h2>
-    <div class="card">
-      <div class="date">August 13, 2025</div>
-  <p><strong>1. Trump and Putin to Meet in Alaska Amid Ukrainian Tensions</strong><br>
-  U.S. President Donald Trump and Russian President Vladimir Putin are scheduled to meet in Alaska on Friday for a high-stakes summit aimed at resolving the ongoing conflict in Ukraine. Notably, Ukrainian President Volodymyr Zelenskyy has not been invited to the talks, raising concerns about potential decisions made without Ukrainian representation. Ukrainian officials fear that the summit may lead to a ceasefire agreement that could involve territorial concessions to Russia, a scenario they strongly oppose.<br>
-  Source: The Guardian<br>
-  <a href="https://www.theguardian.com/world/2025/aug/13/wednesday-briefing-how-trump-and-putin-might-make-peace-in-ukraine-without-zelenskyy-at-the-table" target="_blank" rel="noopener">Read more</a></p>
-  <p><strong>2. Mexico Expels 26 High-Ranking Cartel Members to the U.S.</strong><br>
-  In a significant move to combat drug trafficking, Mexico has expelled 26 high-ranking cartel members to the United States. This action is part of a broader agreement between the two nations to intensify efforts against organized crime and drug smuggling across the border. The individuals deported are wanted by U.S. authorities for various criminal activities.<br>
-  Source: www.ndtv.com<br>
-  <a href="https://www.ndtv.com/world-news" target="_blank" rel="noopener">Read more</a></p>
-  <p><strong>3. Greece Battles Widespread Wildfires Amid Heatwave</strong><br>
-  Greece is grappling with multiple wildfires that have erupted across the country, exacerbated by a persistent heatwave. The fires have led to mass evacuations, threatening homes, farmland, and industrial areas. Authorities are deploying extensive firefighting resources to contain the blazes and prevent further destruction.<br>
-  Source: China.org.cn<br>
-  <a href="https://www.china.org.cn/world/Off_the_Wire/2025-08/13/content_118023017.shtml" target="_blank" rel="noopener">Read more</a></p>
-  <p><strong>4. Trump Criticizes Goldman Sachs CEO Over Tariff Predictions</strong><br>
-  President Donald Trump has publicly criticized Goldman Sachs CEO David Solomon, accusing the bank of making inaccurate predictions regarding the impact of his administration's tariffs on markets and consumer costs. Trump's remarks highlight ongoing tensions between the financial sector and the White House over economic policies.<br>
-  Source: www.ndtv.com<br>
-  <a href="https://www.ndtv.com/world-news" target="_blank" rel="noopener">Read more</a></p>
-  <p><strong>5. Thailand Teacher Assaulted by Student Over Test Score</strong><br>
-  In Thailand, a 17-year-old student has been arrested after assaulting his female teacher in front of the class. The incident occurred after the student received an 18 out of 20 on a test, leading to a violent outburst. CCTV footage of the attack has gone viral, prompting widespread outrage and discussions about student behavior and discipline in schools.<br>
-  Source: www.ndtv.com<br>
-  <a href="https://www.ndtv.com/world-news" target="_blank" rel="noopener">Read more</a></p>
-  <p><strong>6. China Freezes Diplomatic Ties with Czech President</strong><br>
-  China has announced a suspension of diplomatic contacts with Czech President Petr Pavel following his meeting with the Dalai Lama in India. Beijing views the Dalai Lama as a separatist, and the meeting has been perceived as an affront to China's sovereignty. The Czech government has downplayed the significance of China's actions, asserting that no direct communication was disrupted.<br>
-  Source: Expats.cz<br>
-  <a href="https://www.expats.cz/czech-news/article/czech-news-in-brief-for-august-13-2025-wednesdays-top-headlines" target="_blank" rel="noopener">Read more</a></p>
-  <p><strong>7. Iran Introduces New Internet Censorship Bill</strong><br>
-  The Iranian government has introduced a new internet censorship bill, dubbed the "Organizing Cyberspace" law, which is seen as a revised version of the previously stalled "Sianat" bill. The new legislation aims to tighten control over online activities, raising concerns among activists and human rights organizations about increased repression of free expression and access to information.<br>
-  Source: NCR Iran<br>
-  <a href="https://www.ncr-iran.org/en/news/iran-news-in-brief-news/iran-news-in-brief-august-13-2025/" target="_blank" rel="noopener">Read more</a></p>
-  <p><strong>8. New Zealand PM Criticizes Netanyahu's Gaza Strategy</strong><br>
-  New Zealand Prime Minister Chris Hipkins has publicly criticized Israeli Prime Minister Benjamin Netanyahu's strategy in Gaza, stating that Netanyahu has "lost the plot." Hipkins' comments reflect growing international concern over Israel's military actions in Gaza and the humanitarian impact on civilians.<br>
-  Source: U.S. News & World Report<br>
-  <a href="https://www.usnews.com/news/world/articles/2025-08-13/new-zealand-prime-minister-says-israels-netanyahu-has-lost-the-plot" target="_blank" rel="noopener">Read more</a></p>
-  <p><strong>9. Hong Kong Experiences Record Rainstorm Episodes</strong><br>
-  Hong Kong has recorded four black rainstorm episodes—the highest level of heavy rainfall—within a span of eight days, setting a new record for the region. The intense storms have led to significant disruptions, prompting authorities to issue early warnings and implement measures to mitigate the impact on residents and infrastructure.<br>
-  Source: arXiv<br>
-  <a href="https://arxiv.org/abs/2508.07600" target="_blank" rel="noopener">Read more</a></p>
-  <p><strong>10. Greta Thunberg Supports Global Sumud Flotilla Initiative</strong><br>
-  Environmental activist Greta Thunberg has expressed support for the Global Sumud Flotilla, an international maritime initiative aimed at breaking the Israeli blockade of the Gaza Strip. The flotilla, comprising activists from over 40 countries, seeks to deliver humanitarian aid and establish a people-led humanitarian corridor to alleviate the suffering of Palestinians in Gaza.<br>
-  Source: Wikipedia.<br>
-  <a href="https://en.wikipedia.org/wiki/Global_Sumud_Flotilla" target="_blank" rel="noopener">Read more</a></p>
-    </div>
-  </section>
-
-  <section id="archive">
-    <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 2rem;">
-      <h2 style="margin-bottom: 0;">Past Summaries</h2>
-      <div style="min-width: 220px;">
-        <label for="search-archive" style="font-weight:600; display:block; margin-bottom:0.3rem;">Search</label>
-        <input id="search-archive" type="text" placeholder="Search by date or topic..." oninput="searchSummaries(this.value)" style="width: 100%; margin: 0;" />
-      </div>
-    </div>
-    <!-- Past summaries cards remain full width below -->
-      <div id="archive-cards">
-        <div class="card" id="archive-2025-08-10">
-          <div class="date">August 10, 2025</div>
-          <p><strong>1. Meteor Streaks Across Australian Skies</strong><br>
-          A massive meteor lit up the western skies of Victoria, Australia—particularly over Ballarat and Bendigo—sparking a loud sonic boom. The stunning fireball generated alarm and fascination across Melbourne and regional towns. The event, though dramatic, is distinct from the upcoming Perseid meteor shower.<br>
-          Source: News.com.au<br>
-          <a href="https://www.news.com.au/technology/science/space/sonic-boom-huge-meteor-lights-up-victorian-skies/news-story/8063a403d9605b4244f5f4373884d0bb?utm_source=chatgpt.com" target="_blank" rel="noopener">Read more</a></p>
-          <p><strong>2. Netanyahu Defends Gaza City Takeover Plan Amid Global Criticism</strong><br>
-          Israeli Prime Minister Benjamin Netanyahu presented his plan to seize Gaza City as the fastest path to ending the war with Hamas, while emphasizing humanitarian intent. The proposal has drawn significant domestic protests and widespread international condemnation, with UN officials warning of escalating famine and mounting civilian casualties.<br>
-          Source: The Guardian<br>
-          <a href="https://www.theguardian.com/world/live/2025/aug/10/israel-gaza-war-protests-aid-latest-news-updates?utm_source=chatgpt.com" target="_blank" rel="noopener">Read more</a></p>
-          <p><strong>3. UAE Hosts 6th Asian Yogasana Championship</strong><br>
-          Fujairah's Zayed Sports Complex in the UAE is hosting the 6th Asian Yogasana Championship, featuring 160 athletes from 16 countries. The event highlights the UAE’s growing role as a hub for yoga sport and regional athletic development.<br>
-          Source: The Times of India<br>
-          <a href="https://timesofindia.indiatimes.com/world/middle-east/uae-asias-finest-yogis-compete-at-6th-asian-yogasana-championship-in-fujairah/articleshow/123215609.cms?utm_source=chatgpt.com" target="_blank" rel="noopener">Read more</a></p>
-          <p><strong>4. WHO Declares Kenya Free of Sleeping Sickness Threat</strong><br>
-          The World Health Organization has certified Kenya as free from sleeping sickness (human African trypanosomiasis), marking a crucial achievement in the fight against neglected tropical diseases. Kenya is now the tenth country in Africa to reach this milestone.<br>
-          Source: Leverage Edu<br>
-          <a href="https://leverageedu.com/discover/school-education/school-assembly-news-headlines-10-august-2025/?utm_source=chatgpt.com" target="_blank" rel="noopener">Read more</a></p>
-          <p><strong>5. Peace Treaty Signed Between Armenia and Azerbaijan</strong><br>
-          Under the watch of U.S. President Trump, leaders of Armenia and Azerbaijan signed a peace treaty on Friday. Citizens in Yerevan are processing the implications of this landmark agreement, which shifts the geopolitical dynamics in the Caucasus region.<br>
-          Source: Kyiv Post<br>
-          <a href="https://www.kyivpost.com/thread/57842?utm_source=chatgpt.com" target="_blank" rel="noopener">Read more</a></p>
-          <p><strong>6. EU Foreign Chief Insists Ukraine Be Part of Any U.S.–Russia Deal</strong><br>
-          EU foreign policy chief Kaja Kallas stated that any peace agreement between the United States and Russia must include Ukraine and the European Union. She plans to convene European foreign ministers on Monday to discuss next steps in negotiations.<br>
-          Source: Reuters<br>
-          <a href="https://www.reuters.com/world/?utm_source=chatgpt.com" target="_blank" rel="noopener">Read more</a></p>
-          <p><strong>7. Guatemala Hit by Offshore Earthquake</strong><br>
-          A magnitude-5.9 earthquake struck off Guatemala's southwest coast. Fortunately, no significant damage has been reported so far.<br>
-          Source: ABC News<br>
-          <a href="https://abcnews.go.com/International?utm_source=chatgpt.com" target="_blank">Read more</a></p>
-          <p><strong>8. UK Anti-Immigration Protests Spread Across Cities</strong><br>
-          Anti-migration demonstrations swept across Britain from August 8–9, prompting multiple arrests. Protests took place in cities such as Liverpool, Norwich, Bristol, and Bournemouth, often featuring confrontations between opposing groups and substantial police involvement.<br>
-          Source: Wikipedia<br>
-          <a href="https://en.wikipedia.org/wiki/2025_British_anti-immigration_protests?utm_source=chatgpt.com" target="_blank" rel="noopener">Read more</a></p>
-          <p><strong>9. Sailing Community Mourns Loss of Champion Peter Lester</strong><br>
-          New Zealand is mourning the passing of Peter Lester, a two-time Yachtsman of the Year and beloved figure in the sailing world. He was known not only for his competitive achievements but also for his coaching and broadcasting contributions.<br>
-          Source: The Economic Times<br>
-          <a href="https://m.economictimes.com/news/international/new-zealand/peter-lester-new-zealands-two-time-yachtsman-of-the-year-beloved-sailor-and-leading-voice-of-the-americas-cup-dies-at-70/articleshow/123212972.cms?utm_source=chatgpt.com" target="_blank" rel="noopener">Read more</a></p>
-          <p><strong>10. Journalist Reflects on Gaza Reporting and Media Silence</strong><br>
-          Journalist Phoebe Greenwood offers a poignant reflection on years of covering the Gaza conflict. She critiques the media's reluctance to confront uncomfortable truths and highlights the emotional toll of witnessing humanitarian crises and global indifference.<br>
-          <a href="https://www.theguardian.com/world/ng-interactive/2025/aug/10/gaza-israel-palestine-outrage?utm_source=chatgpt.com" target="_blank" rel="noopener">Read more</a></p>
-        </div>
-        <div class="card" id="archive-2025-08-09">
-          <div class="date">August 9, 2025</div>
-          <div class="archive-summary-collapsed">
-            <p><strong>1. Shooting Near CDC Headquarters in Atlanta</strong><br>
-            A police officer was fatally shot outside the CDC headquarters in Atlanta, Georgia. The suspect later barricaded himself inside a nearby CVS Pharmacy, where he was found deceased. The motive remains under investigation.<br>
-            Sources: ABC News, KGW, Wikipedia, newsday.com<br>
-            <a href="https://abcnews.go.com/US/active-shooter-reported-emory-universitys-atlanta-campus/story?id=124495968" target="_blank">Read more</a></p>
-          </div>
-          <button id="archive-2025-08-09-toggle" class="archive-toggle" type="button" aria-expanded="false" aria-controls="archive-2025-08-09-expanded">Show more</button>
-          <div id="archive-2025-08-09-expanded" class="archive-summary-expanded">
-            <p><strong>1. Shooting Near CDC Headquarters in Atlanta</strong><br>
-            A police officer was fatally shot outside the CDC headquarters in Atlanta, Georgia. The suspect later barricaded himself inside a nearby CVS Pharmacy, where he was found deceased. The motive remains under investigation.<br>
-            Sources: ABC News, KGW, Wikipedia, newsday.com<br>
-            <a href="https://abcnews.go.com/US/active-shooter-reported-emory-universitys-atlanta-campus/story?id=124495968" target="_blank">Read more</a></p>
-            <p><strong>2. Explosion at Lebanese Weapons Depot</strong><br>
-            An explosion at a suspected Hezbollah weapons depot in Zibqin, Lebanon, resulted in the deaths of six Lebanese army experts and injuries to several others. The incident occurred on August 9, 2025.<br>
-            Source: Wikipedia<br>
-            <a href="https://www.apnews.com/2025/08/09/explosion-lebanon-army" target="_blank">Read more</a></p>
-            <p><strong>3. Trump to Meet Putin in Alaska</strong><br>
-            Former President Donald Trump announced plans to meet Russian President Vladimir Putin in Alaska next Friday. The meeting is expected to focus on discussions between the two leaders.<br>
-            Source: ABC News<br>
-            <a href="https://abcnews.go.com/GMA/Living/video/gma-life-sat-aug-9-2025-124508563" target="_blank">Read more</a></p>
-            <p><strong>4. Canyon Fire Forces Evacuations in California</strong><br>
-            A wildfire known as the Canyon Fire in California has prompted evacuation orders for thousands of residents. The fire's rapid spread has raised concerns about its potential impact on surrounding communities.<br>
-            <a href="https://abcnews.go.com/GMA/Living/video/gma-life-sat-aug-9-2025-124508563" target="_blank">Read more</a></p>
-            <p><strong>5. Times Square Shooting Injures Three</strong><br>
-            A shooting incident in Times Square resulted in three people being wounded. Authorities are investigating the circumstances surrounding the attack.<br>
-            Source: ABC7 New York<br>
-            <a href="https://abc7ny.com/eyewitness-news-saturday-morning-at-9am---august-9-2025/17482461/" target="_blank">Read more</a></p>
-            <p><strong>6. Firefighter Injured in Queens Blaze</strong><br>
-            A fire in a Queens home led to the injury of a firefighter. The blaze caused significant damage to the residence.<br>
-            Sources: ABC7 New York, ABC News<br>
-            <a href="https://abc7ny.com/eyewitness-news-saturday-morning-at-9am---august-9-2025/17482461/" target="_blank">Read more</a></p>
-            <p><strong>7. Suspect Sought in East Harlem Attack</strong><br>
-            Authorities are searching for a suspect involved in an attack on a man with a metal pipe in East Harlem. The incident occurred recently, and police are working to identify the individual responsible.<br>
-            Source: ABC7 New York<br>
-            <a href="https://abc7ny.com/eyewitness-news-saturday-morning-at-9am---august-9-2025/17482461/" target="_blank">Read more</a></p>
-            <p><strong>8. Widow Forgives Man Convicted in Hit-and-Run</strong><br>
-            A widow publicly forgave and embraced the man convicted of killing her husband in a hit-and-run incident. The emotional moment took place during a recent court proceeding.<br>
-            Source: ABC7 New York<br>
-            <a href="https://abc7ny.com/eyewitness-news-saturday-morning-at-9am---august-9-2025/17482461/" target="_blank">Read more</a></p>
-            <p><strong>9. Man Rescued After Cardiac Arrest at Beach</strong><br>
-            A man was rescued after going into cardiac arrest during a beach vacation. Emergency responders were able to provide immediate assistance, leading to a successful rescue.<br>
-            Source: ABC7 New York<br>
-            <a href="https://abc7ny.com/eyewitness-news-saturday-morning-at-9am---august-9-2025/17482461/" target="_blank">Read more</a></p>
-            <p><strong>10. MrBeast and Mark Rober Launch Water Campaign</strong><br>
-            YouTubers MrBeast and Mark Rober have initiated a campaign to provide clean water to 2 million people worldwide. The campaign aims to raise $40 million, with support from various creators and organizations.<br>
-            <a href="https://www.goodgoodgood.co/articles/good-news-this-week-august-9-2025" target="_blank">Read more</a></p>
-          </div>
-  <script>
-    // Expand/collapse August 9 summary card with toggle button + persistence
-    document.addEventListener('DOMContentLoaded', function() {
-      var archiveCard = document.getElementById('archive-2025-08-09');
-      var toggleBtn = document.getElementById('archive-2025-08-09-toggle');
-      var collapsed = archiveCard ? archiveCard.querySelector('.archive-summary-collapsed') : null;
-      var expanded = document.getElementById('archive-2025-08-09-expanded');
-      if (archiveCard && toggleBtn && collapsed && expanded) {
-        function setExpandedState(expand) {
-          if (expand) {
-            collapsed.style.display = 'none';
-            expanded.classList.add('expanded');
-            toggleBtn.textContent = 'Show less';
-            toggleBtn.setAttribute('aria-expanded', 'true');
-          } else {
-            collapsed.style.display = 'block';
-            expanded.classList.remove('expanded');
-            toggleBtn.textContent = 'Show more';
-            toggleBtn.setAttribute('aria-expanded', 'false');
-          }
-          try { localStorage.setItem('archive-2025-08-09-expanded', expand ? 'true' : 'false'); } catch (e) {}
-        }
-        // Init from storage
-        var saved = null;
-        try { saved = localStorage.getItem('archive-2025-08-09-expanded'); } catch (e) {}
-        setExpandedState(saved === 'true');
-        // Toggle on click
-        toggleBtn.addEventListener('click', function() {
-          var isExpanded = toggleBtn.getAttribute('aria-expanded') === 'true';
-          setExpandedState(!isExpanded);
-        });
-      }
-    });
-  </script>
-      <div class="card" id="archive-2025-08-08">
-        <div class="date">August 8, 2025</div>
-        <div class="archive-summary-collapsed">
-          <p><strong>1. Mars-Sized Asteroids to Fly Past Earth (No Impact Risk)</strong><br>
-          NASA announced two large asteroids will make close flybys on August 8, 2025—but neither poses a threat. Asteroid 2025 OJ1 (approx. 300 feet wide) will pass within about 3.2 million miles, while 2019 CO1 (approx. 200 feet wide) will come within 4.24 million miles.<br>
-          Source: The Times of India<br>
-          <a href="https://timesofindia.indiatimes.com/science/nasa-warns-two-giant-asteroids-one-over-300-feet-to-make-close-earth-flybys-on-august-8-2025-are-we-really-at-risk/articleshow/123183953.cms" target="_blank">Read more</a></p>
-        </div>
-        <button id="archive-2025-08-08-toggle" class="archive-toggle" type="button" aria-expanded="false" aria-controls="archive-2025-08-08-expanded">Show more</button>
-        <div id="archive-2025-08-08-expanded" class="archive-summary-expanded">
-          <p><strong>1. Mars-Sized Asteroids to Fly Past Earth (No Impact Risk)</strong><br>
-          NASA announced two large asteroids will make close flybys on August 8, 2025—but neither poses a threat. Asteroid 2025 OJ1 (approx. 300 feet wide) will pass within about 3.2 million miles, while 2019 CO1 (approx. 200 feet wide) will come within 4.24 million miles.<br>
-          Source: The Times of India<br>
-          <a href="https://timesofindia.indiatimes.com/home/science/mars-sized-asteroids-flyby-earth-august-8-2025/articleshow/102345600.cms" target="_blank">Read more</a></p>
-          <p><strong>2. Longest Running Counterterror Operation in Kulgam, Kashmir</strong><br>
-          A counterterrorism operation in Kulgam district, southern Kashmir, entered its eighth day. Security forces continue efforts to neutralize militant threats and restore stability, though further updates on casualties remain sparse.<br>
-          Source: The Economic Times<br>
-          <a href="https://economictimes.indiatimes.com/news/defence/counterterror-op-in-kulgam-enters-8th-day/articleshow/123193774.cms" target="_blank">Read more</a></p>
-          <p><strong>3. Arsenal’s Nwaneri Extends Contract; Rainbow Laces Campaign Ends</strong><br>
-          Arsenal secured 18-year-old Ethan Nwaneri with a new five-year deal after a standout season. Simultaneously, the Premier League ended its Rainbow Laces campaign supporting LGBT+ inclusion. Notable transfers included Burnley signing Armando Broja and Aston Villa adding Evann Guessand.<br>
-          Source: The Guardian<br>
-          <a href="https://www.theguardian.com/football/live/2025/aug/08/transfer-news-championship-kicks-off-football-live" target="_blank">Read more</a></p>
-          <p><strong>4. Aurora Visible in 18 U.S. States Overnight</strong><br>
-          A strong coronal mass ejection has created a rare opportunity for residents in 18 northern U.S. states to witness the Northern Lights. Clear skies and minimal light pollution are key factors for visibility.<br>
-          Source: The Times of India<br>
-          <a href="https://timesofindia.indiatimes.com/etimes/trending/aurora-2025-18-us-states-could-see-the-northern-lights-tonight-and-heres-how-to-watch-them/articleshow/123192825.cms" target="_blank">Read more</a></p>
-          <p><strong>5. Federal Forces Deployed to Tackle Youth Crime in D.C.</strong><br>
-          The federal government is deploying the National Guard, FBI, and DHS agents to Washington, D.C., in response to a spike in youth-related crime. This action stems from President Trump’s intent to escalate federal oversight of the capital.<br>
-          Source: New York Post<br>
-          <a href="https://nypost.com/2025/08/08/us-news/ny-postcast-daily-debrief-august-8-2025/" target="_blank">Read more</a></p>
-          <p><strong>6. Germany Imposes Arms Embargo on Israel</strong><br>
-          Germany placed an arms embargo on Israel in response to its actions during the Gaza War—a decision formalized on August 8, 2025.<br>
-          Source: Wikipedia<br>
-          <a href="https://en.wikipedia.org/wiki/2025_in_Germany" target="_blank">Read more</a></p>
-          <p><strong>7. CDC Shooting in Atlanta Claims Officer’s Life</strong><br>
-          A gunman fired outside the CDC in Atlanta, killing a police officer before barricading himself in a nearby CVS. The suspect was later found dead. No additional injuries were reported, though several individuals sought treatment for stress.<br>
-          Sources: Wikipedia, ABC News<br>
-          <a href="https://abcnews.go.com/US/active-shooter-reported-emory-universitys-atlanta-campus/story?id=124495968" target="_blank">Read more</a></p>
-          <p><strong>8. MGK Samples Third Eye Blind, Releases "Lost Americana"</strong><br>
-          Machine Gun Kelly’s new album Lost Americana features a sample of Third Eye Blind’s "Semi-Charmed Life" in the track “Starman.” Despite clearance challenges and a reportedly dramatic incident involving the National Guard, permission was granted. The album launch included surprise performances and was celebrated with a “MGK Day” in Cleveland.<br>
-          Source: Page Six<br>
-          <a href="https://pagesix.com/entertainment/we-hear-music-news-events-2025/" target="_blank">Read more</a></p>
-          <p><strong>9. U.S. Market Stocks Rally, Nasdaq Hits Record High</strong><br>
-          Major U.S. stock indexes ended the week strongly: Dow Jones gained 0.5% (+1.4% weekly), S&P 500 rose 0.8% (+2.4%), and the Nasdaq reached a new all-time high (+1%, +3.9% weekly). Apple led gains with a 10% weekly surge, while SoundHound jumped 30% amid AI optimism.<br>
-          Source: Investors<br>
-          <a href="https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-trade-desk-ttd-stock/" target="_blank">Read more</a></p>
-          <p><strong>10. PBS NewsHour: Israel Plans to Control Gaza City</strong><br>
-          The PBS NewsHour reported Israel is preparing to take control of Gaza City as part of its broader campaign in Gaza. The segment also included President Trump’s upcoming meeting with Putin, and FEMA's evolving response under his administration.<br>
-          Sources: PBS<br>
-          <a href="https://www.pbs.org/newshour/show/august-8-2025-pbs-news-hour-full-episode" target="_blank">Read more</a></p>
-        </div>
-      </div>
+    <div class="card" id="today-summary">
+      <!-- Today's summary will be loaded here dynamically -->
     </div>
   </section>
 
   <!-- Ad Section removed for Google AdSense integration -->
 
   <footer>
-    © 2025 Day2Day News Summaries. A JusT Website. AI can make mistakes. All rights reserved. Day2Day News does not endorse any ideas, political parties or products.
+    © 2025 Day2Day News Summaries. An Astronaut Website. AI can make mistakes. All rights reserved. Day2Day News does not endorse any ideas, political parties or products.
   </footer>
 
-  <!-- Preferences Sidebar -->
-<div id="preferences-sidebar" style="position: fixed; top: 0; right: -320px; width: 320px; height: 100vh; background: #fff; box-shadow: -2px 0 16px rgba(0,0,0,0.08); z-index: 9999; transition: right 0.3s; padding: 2rem 1.5rem; display: flex; flex-direction: column;">
-  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
-    <h3 style="margin: 0; font-size: 1.3rem; text-align: left; color: #222;">Preferences</h3>
-    <button id="close-sidebar" style="background: none; border: none; cursor: pointer; padding: 0; margin-left: 1rem; font-size: 1.5rem; color: #888;">
-  <i class="fa-solid fa-circle-xmark" style="color: #4285f4;"></i>
-    </button>
-  </div>
-  <div style="margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between;">
-    <span style="font-size: 1.1rem;">Dark Mode</span>
-    <button id="dark-mode-toggle" style="background: none; border: none; cursor: pointer;">
-      <i id="dark-mode-icon" class="fa-solid fa-toggle-off" style="font-size: 1.5rem; color: #4285f4;"></i>
-    </button>
-  </div>
-  <div style="margin-bottom: 1.5rem; display: flex; flex-direction: column; min-height: 0; flex: 1;">
-  <span style="font-family: 'Segoe UI', 'Arial', sans-serif; font-size: 1.3rem; font-weight: 700; letter-spacing: 0.5px; color: #222;">Topics</span>
-  <div class="topics-scroll" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem; flex: 1; min-height: 0;">
-      <button class="topic-toggle" data-topic="General" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 1rem; font-weight: bold;">
-  <span>📰 Default <span style="font-size:0.9rem; color:#888;">(biggest news)</span></span>
-        <i class="fa-solid fa-toggle-on" style="font-size: 1.5rem; color: #4285f4;"></i>
-      </button>
-      <button class="topic-toggle" data-topic="World/Politics" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 1rem;">
-      <span>🌍 World & Politics</span>
-        <i class="fa-solid fa-toggle-off" style="font-size: 1.5rem; color: #4285f4;"></i>
-      </button>
-      <button class="topic-toggle" data-topic="Tech/Ai" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 1rem;">
-    <span>💻 Tech/AI</span>
-        <i class="fa-solid fa-toggle-off" style="font-size: 1.5rem; color: #4285f4;"></i>
-      </button>
-      <button class="topic-toggle" data-topic="Business/Economy" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 1rem;">
-      <span>💼 Business & Economy</span>
-        <i class="fa-solid fa-toggle-off" style="font-size: 1.5rem; color: #4285f4;"></i>
-      </button>
-      <button class="topic-toggle" data-topic="Sports" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 1rem;">
-    <span>⚽ Sports</span>
-        <i class="fa-solid fa-toggle-off" style="font-size: 1.5rem; color: #4285f4;"></i>
-      </button>
-      <button class="topic-toggle" data-topic="Entertainment/Culture" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 1rem;">
-      <span>🎭 Entertainment/Culture</span>
-        <i class="fa-solid fa-toggle-off" style="font-size: 1.5rem; color: #4285f4;"></i>
-      </button>
-      <button class="topic-toggle" data-topic="Science & Space" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 1rem;">
-      <span>🔬 Science & Space</span>
-        <i class="fa-solid fa-toggle-off" style="font-size: 1.5rem; color: #4285f4;"></i>
-      </button>
-      <button class="topic-toggle" data-topic="Travel & Lifestyle" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 1rem;">
-      <span>✈️ Travel & Lifestyle</span>
-        <i class="fa-solid fa-toggle-off" style="font-size: 1.5rem; color: #4285f4;"></i>
-      </button>
-      <button class="topic-toggle" data-topic="Crime" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 1rem;">
-      <span>🚓 Crime</span>
-        <i class="fa-solid fa-toggle-off" style="font-size: 1.5rem; color: #4285f4;"></i>
-      </button>
-      <button class="topic-toggle" data-topic="Health" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 1rem;">
-      <span>🩺 Health</span>
-        <i class="fa-solid fa-toggle-off" style="font-size: 1.5rem; color: #4285f4;"></i>
-      </button>
-      <button class="topic-toggle" data-topic="Education" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 1rem;">
-      <span>📚 Education</span>
-        <i class="fa-solid fa-toggle-off" style="font-size: 1.5rem; color: #4285f4;"></i>
-      </button>
-    </div>
-  </div>
-</div>
-
   <script>
-    // Expand/collapse yesterday's summary card with toggle button + persistence
-    document.addEventListener('DOMContentLoaded', function() {
-      var archiveCard = document.getElementById('archive-2025-08-08');
-      var toggleBtn = document.getElementById('archive-2025-08-08-toggle');
-      var collapsed = archiveCard ? archiveCard.querySelector('.archive-summary-collapsed') : null;
-      var expanded = document.getElementById('archive-2025-08-08-expanded');
-      if (archiveCard && toggleBtn && collapsed && expanded) {
-        function setExpandedState(expand) {
-          if (expand) {
-            collapsed.style.display = 'none';
-            expanded.classList.add('expanded');
-            toggleBtn.textContent = 'Show less';
-            toggleBtn.setAttribute('aria-expanded', 'true');
-          } else {
-            collapsed.style.display = 'block';
-            expanded.classList.remove('expanded');
-            toggleBtn.textContent = 'Show more';
-            toggleBtn.setAttribute('aria-expanded', 'false');
-          }
-          try { localStorage.setItem('archive-2025-08-08-expanded', expand ? 'true' : 'false'); } catch (e) {}
-        }
-        // Init from storage
-        var saved = null;
-        try { saved = localStorage.getItem('archive-2025-08-08-expanded'); } catch (e) {}
-        setExpandedState(saved === 'true');
-        // Toggle on click
-        toggleBtn.addEventListener('click', function() {
-          var isExpanded = toggleBtn.getAttribute('aria-expanded') === 'true';
-          setExpandedState(!isExpanded);
-        });
-      }
-    });
+    // Legacy expand/collapse code removed (stale hardcoded IDs)
     // Apply dark mode if remembered
     document.addEventListener('DOMContentLoaded', function() {
       if (localStorage.getItem('darkMode') === 'true') {
         darkMode = true;
         applyDarkMode();
       }
-      // Restore selected topics
-      const selectedTopics = JSON.parse(localStorage.getItem('selectedTopics') || '[]');
-      document.querySelectorAll('.topic-toggle').forEach(btn => {
-        if (selectedTopics.includes(btn.dataset.topic)) {
-          btn.classList.add('selected');
-          const icon = btn.querySelector('i');
-          if (icon) {
-            icon.classList.remove('fa-toggle-off');
-            icon.classList.add('fa-toggle-on');
-            icon.style.color = '#4285f4';
-          }
-        }
-      });
       // Security: ensure new-tab links don't get access to window.opener
       document.querySelectorAll('a[target="_blank"]').forEach(a => {
         const rel = (a.getAttribute('rel') || '').split(/\s+/).filter(Boolean);
@@ -733,58 +395,143 @@
         a.setAttribute('rel', rel.join(' '));
       });
     });
-    function searchSummaries(query) {
-      const cards = document.querySelectorAll('#archive-cards .card');
-      cards.forEach(card => {
-        const content = card.innerText.toLowerCase();
-        card.style.display = content.includes(query.toLowerCase()) ? 'block' : 'none';
-      });
-    }
 
-    // Audio summary play button logic
-    document.getElementById('play-audio').addEventListener('click', function () {
+    // Audio summary play button logic (fetches from Supabase Storage by date)
+    (function initAudioButton() {
+      const btn = document.getElementById('play-audio');
+      const icon = btn.querySelector('i');
       let audio = document.getElementById('summary-audio');
       if (!audio) {
         audio = document.createElement('audio');
         audio.id = 'summary-audio';
-        audio.src = 'audio/todays-summary.mp3'; // Replace with your actual audio file path
+        audio.preload = 'none';
         document.body.appendChild(audio);
       }
-      audio.play();
-    });
+      let currentSrc = '';
+      let isLoading = false;
 
-    // Preferences sidebar logic
-    const sidebar = document.getElementById('preferences-sidebar');
-    const openBtn = document.getElementById('preferences-btn');
-    const closeBtn = document.getElementById('close-sidebar');
-    openBtn.addEventListener('click', () => {
-      sidebar.style.right = '0';
-      document.body.classList.add('sidebar-open');
-    });
-    closeBtn.addEventListener('click', () => {
-      sidebar.style.right = '-320px';
-      document.body.classList.remove('sidebar-open');
-    });
+      function computeAudioUrl() {
+        const date = (typeof currentViewDate === 'string' && currentViewDate) ? currentViewDate : getDisplayDateUTC();
+        const bucket = 'news-audio';
+        return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${date}.wav`;
+      }
 
-    // Hide sidebar when clicking outside
-    window.addEventListener('mousedown', function(e) {
-      if (document.body.classList.contains('sidebar-open')) {
-        if (!sidebar.contains(e.target) && e.target !== openBtn) {
-          sidebar.style.right = '-320px';
-          document.body.classList.remove('sidebar-open');
+      function setIconPlaying(playing) {
+        if (playing) {
+          icon.classList.remove('fa-play');
+          icon.classList.add('fa-pause');
+        } else {
+          icon.classList.remove('fa-pause');
+          icon.classList.add('fa-play');
         }
       }
-    });
-    // Hide sidebar on backspace
-    window.addEventListener('keydown', function(e) {
-      if (document.body.classList.contains('sidebar-open') && e.key === 'Backspace') {
-        sidebar.style.right = '-320px';
-        document.body.classList.remove('sidebar-open');
+
+      async function ensureSrcAndPlay() {
+        const url = computeAudioUrl();
+        // If already set and paused, just play
+        if (audio.src === url && audio.paused && !isLoading) {
+          await audio.play().catch(()=>{});
+          setIconPlaying(true);
+          return;
+        }
+        // If changing source while playing, pause first
+        if (!audio.paused) {
+          audio.pause();
+        }
+        // Optimistic set; optionally we could HEAD check existence
+        isLoading = true;
+        setIconPlaying(true);
+        audio.src = url;
+        try {
+          await audio.play();
+        } catch (e) {
+          // If failed (likely 404), revert icon and notify
+          setIconPlaying(false);
+          console.warn('Audio play failed (maybe not generated yet):', e);
+          alert('Audio summary is not available for this date yet.');
+        } finally {
+          isLoading = false;
+        }
+      }
+
+      btn.addEventListener('click', async () => {
+        // Toggle if same src and currently playing
+        const url = computeAudioUrl();
+        if (audio.src === url && !audio.paused) {
+          audio.pause();
+          setIconPlaying(false);
+          return;
+        }
+        await ensureSrcAndPlay();
+      });
+
+      audio.addEventListener('ended', () => setIconPlaying(false));
+      audio.addEventListener('pause', () => setIconPlaying(false));
+
+      // Stop audio when navigating dates
+      function stopOnNavigate() {
+        if (!audio.paused) audio.pause();
+        setIconPlaying(false);
+      }
+      document.getElementById('back-btn').addEventListener('click', stopOnNavigate);
+      document.getElementById('forward-btn').addEventListener('click', stopOnNavigate);
+      document.getElementById('today-btn').addEventListener('click', stopOnNavigate);
+    })();
+
+    // Share button logic
+    const shareBtn = document.getElementById('share-btn');
+    shareBtn.addEventListener('click', async () => {
+      const todayDiv = document.getElementById('today-summary');
+      let date = '';
+      let summary = '';
+      if (todayDiv) {
+        const dateEl = todayDiv.querySelector('.date');
+        date = dateEl ? dateEl.textContent.trim() : '';
+        // Get summary text (strip HTML)
+        const summaryEl = todayDiv.querySelector('div:not(.date)');
+        if (summaryEl) {
+          summary = summaryEl.textContent.trim();
+        } else {
+          // fallback: get all text except date
+          summary = Array.from(todayDiv.childNodes)
+            .filter(n => n.nodeType === 1 && !n.classList?.contains('date'))
+            .map(n => n.textContent.trim()).join('\n');
+        }
+      }
+      const url = window.location.origin + window.location.pathname;
+      const shareText = `${date}\n${summary}\n${url}`;
+      // Try Web Share API first
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: `Day2Day News: ${date}`,
+            text: summary,
+            url: url
+          });
+        } catch (err) {
+          // User cancelled or error, fallback to clipboard
+          try {
+            await navigator.clipboard.writeText(shareText);
+            shareBtn.title = "Copied!";
+            setTimeout(() => { shareBtn.title = "Share today's summary"; }, 1500);
+          } catch (e) {
+            alert('Failed to copy to clipboard');
+          }
+        }
+      } else {
+        // Fallback: copy to clipboard
+        try {
+          await navigator.clipboard.writeText(shareText);
+          shareBtn.title = "Copied!";
+          setTimeout(() => { shareBtn.title = "Share today's summary"; }, 1500);
+        } catch (e) {
+          alert('Failed to copy to clipboard');
+        }
       }
     });
 
     // Dark mode toggle logic (improved contrast + link/placeholder styling)
-    const darkModeToggle = document.getElementById('dark-mode-toggle');
+    const darkModeBtn = document.getElementById('dark-mode-btn');
     const darkModeIcon = document.getElementById('dark-mode-icon');
     let darkMode = false;
 
@@ -792,19 +539,16 @@
       const body = document.body;
       body.style.background = '#0f1419';
       body.style.color = '#e6edf3';
+  body.classList.add('dark');
       const h1 = document.querySelector('header h1');
       if (h1) h1.style.color = '#e6edf3';
 
       // Ensure section headers are readable
       const todayH2 = document.querySelector('#today h2');
       if (todayH2) todayH2.style.color = '#e6edf3';
-      const sidebarEl = document.getElementById('preferences-sidebar');
-      if (sidebarEl) {
-        sidebarEl.style.background = '#161b22';
-        sidebarEl.style.color = '#e6edf3';
-        const prefTitle = sidebarEl.querySelector('h3');
-        if (prefTitle) prefTitle.style.color = '#e6edf3';
-      }
+        document.querySelectorAll('.digest-topic h2').forEach(h2 => {
+          h2.style.color = '#e6edf3';
+        });
 
       // Override all dark text to light
       document.querySelectorAll('strong, p, span, label').forEach(el => {
@@ -820,16 +564,10 @@
         dateEl.style.color = '#9aa4b2';
       });
 
-      document.querySelectorAll('input[type="text"]').forEach(input => {
-        input.style.background = '#0f1419';
-        input.style.color = '#e6edf3';
-        input.style.borderColor = '#30363d';
-      });
-
       document.querySelectorAll('footer').forEach(footer => {
-        footer.style.background = '#161b22';
+        footer.style.background = 'none';
         footer.style.color = '#9aa4b2';
-        footer.style.borderTop = '1px solid #30363d';
+        footer.style.borderTop = '';
       });
 
       document.querySelectorAll('.corner-link').forEach(link => {
@@ -838,10 +576,14 @@
         link.style.borderLeft = '4px solid #8ab4f8';
       });
 
-      // Primary action buttons (play, preferences)
+      // Primary action buttons (play, dark-mode, share, back, forward, today)
       const playBtn = document.getElementById('play-audio');
-      const prefBtn = document.getElementById('preferences-btn');
-      [playBtn, prefBtn].forEach(btn => {
+      const darkBtn = document.getElementById('dark-mode-btn');
+      const shareBtn = document.getElementById('share-btn');
+      const backBtn = document.getElementById('back-btn');
+      const forwardBtn = document.getElementById('forward-btn');
+      const todayBtn = document.getElementById('today-btn');
+      [playBtn, darkBtn, shareBtn, backBtn, forwardBtn].forEach(btn => {
         if (!btn) return;
         btn.style.background = '#1f2a37';
         btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.40)';
@@ -852,17 +594,14 @@
         const icon = btn.querySelector('i');
         if (icon) icon.style.color = '#8ab4f8';
       });
-
-      // Style the sidebar close button for dark mode
-      const closeBtnEl = document.getElementById('close-sidebar');
-      if (closeBtnEl) {
-        closeBtnEl.style.background = '#1f2a37';
-        closeBtnEl.style.color = '#e6edf3';
-        closeBtnEl.style.boxShadow = '0 2px 8px rgba(0,0,0,0.40)';
-        closeBtnEl.setAttribute('onmouseover', "this.style.background='#263244'");
-        closeBtnEl.setAttribute('onmouseout', "this.style.background='#1f2a37'");
-        closeBtnEl.setAttribute('ontouchstart', "this.style.background='#263244'");
-        closeBtnEl.setAttribute('ontouchend', "this.style.background='#1f2a37'");
+      if (todayBtn) {
+        todayBtn.style.background = '#1f2a37';
+        todayBtn.style.color = '#8ab4f8';
+        todayBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.40)';
+        todayBtn.setAttribute('onmouseover', "this.style.background='#263244'");
+        todayBtn.setAttribute('onmouseout', "this.style.background='#1f2a37'");
+        todayBtn.setAttribute('ontouchstart', "this.style.background='#263244'");
+        todayBtn.setAttribute('ontouchend', "this.style.background='#1f2a37'");
       }
 
       // Inject CSS for links, placeholders, and corner-link hover/icon
@@ -873,34 +612,30 @@
         styleEl.textContent = `
           a { color: #8ab4f8; }
           a:hover { color: #9cc1ff; }
-          input::placeholder { color: #9aa4b2; opacity: 1; }
           .corner-link:hover { background: #1b2330 !important; }
           .corner-link .rect-icon { background: #8ab4f8 !important; }
         `;
         document.head.appendChild(styleEl);
       }
 
-      darkModeIcon.classList.remove('fa-toggle-off');
-      darkModeIcon.classList.add('fa-toggle-on');
+      darkModeIcon.classList.remove('fa-moon');
+      darkModeIcon.classList.add('fa-sun');
     };
 
   const applyLightMode = () => {
       const body = document.body;
       body.style.background = '#f9f9f9';
       body.style.color = '#222';
+  body.classList.remove('dark');
       const h1 = document.querySelector('header h1');
       if (h1) h1.style.color = '#111';
 
       // Revert section header colors
       const todayH2 = document.querySelector('#today h2');
       if (todayH2) todayH2.style.color = '#222';
-      const sidebarEl = document.getElementById('preferences-sidebar');
-      if (sidebarEl) {
-        sidebarEl.style.background = '#fff';
-        sidebarEl.style.color = '#222';
-        const prefTitle = sidebarEl.querySelector('h3');
-        if (prefTitle) prefTitle.style.color = '#222';
-      }
+        document.querySelectorAll('.digest-topic h2').forEach(h2 => {
+          h2.style.color = '#222';
+        });
 
       // Revert all text to default
       document.querySelectorAll('strong, p, span, label').forEach(el => {
@@ -916,12 +651,6 @@
         dateEl.style.color = '#777';
       });
 
-      document.querySelectorAll('input[type="text"]').forEach(input => {
-        input.style.background = '#fff';
-        input.style.color = '#222';
-        input.style.borderColor = '#ccc';
-      });
-
       document.querySelectorAll('footer').forEach(footer => {
         footer.style.background = 'none';
         footer.style.color = '#222';
@@ -935,9 +664,13 @@
       });
 
       // Reset buttons to light colors
-      const playBtn = document.getElementById('play-audio');
-      const prefBtn = document.getElementById('preferences-btn');
-      [playBtn, prefBtn].forEach(btn => {
+  const playBtn = document.getElementById('play-audio');
+  const darkBtn = document.getElementById('dark-mode-btn');
+  const shareBtnEl = document.getElementById('share-btn');
+  const backBtn = document.getElementById('back-btn');
+  const forwardBtn = document.getElementById('forward-btn');
+  const todayBtn = document.getElementById('today-btn');
+  [playBtn, darkBtn, shareBtnEl, backBtn, forwardBtn].forEach(btn => {
         if (!btn) return;
         btn.style.background = '#e8f0fe';
         btn.style.boxShadow = '0 2px 8px rgba(66,133,244,0.06)';
@@ -948,27 +681,25 @@
         const icon = btn.querySelector('i');
         if (icon) icon.style.color = '#4285f4';
       });
-
-      const closeBtnEl = document.getElementById('close-sidebar');
-      if (closeBtnEl) {
-        closeBtnEl.style.background = '#e8f0fe';
-        closeBtnEl.style.color = '#222';
-        closeBtnEl.style.boxShadow = '';
-        closeBtnEl.setAttribute('onmouseover', "this.style.background='#d2e3fc'");
-        closeBtnEl.setAttribute('onmouseout', "this.style.background='#e8f0fe'");
-        closeBtnEl.setAttribute('ontouchstart', "this.style.background='#d2e3fc'");
-        closeBtnEl.setAttribute('ontouchend', "this.style.background='#e8f0fe'");
+      if (todayBtn) {
+        todayBtn.style.background = '#e8f0fe';
+        todayBtn.style.color = '#4285f4';
+        todayBtn.style.boxShadow = '0 2px 8px rgba(66,133,244,0.06)';
+        todayBtn.setAttribute('onmouseover', "this.style.background='#d2e3fc'");
+        todayBtn.setAttribute('onmouseout', "this.style.background='#e8f0fe'");
+        todayBtn.setAttribute('ontouchstart', "this.style.background='#d2e3fc'");
+        todayBtn.setAttribute('ontouchend', "this.style.background='#e8f0fe'");
       }
 
       // Remove injected dark CSS
       const styleEl = document.getElementById('darkmode-css');
       if (styleEl) styleEl.remove();
 
-      darkModeIcon.classList.remove('fa-toggle-on');
-      darkModeIcon.classList.add('fa-toggle-off');
+      darkModeIcon.classList.remove('fa-sun');
+      darkModeIcon.classList.add('fa-moon');
     };
 
-  darkModeToggle.addEventListener('click', () => {
+  darkModeBtn.addEventListener('click', () => {
       darkMode = !darkMode;
       darkMode ? applyDarkMode() : applyLightMode();
       try {
@@ -976,52 +707,293 @@
       } catch (e) { /* ignore storage errors */ }
     });
   // Note: Dark mode sync to about.html relies on localStorage + storage events.
-
-    // Topic toggle logic
-    document.querySelectorAll('.topic-toggle').forEach(btn => {
-      btn.addEventListener('click', function() {
-        if (btn.dataset.topic === 'General' || btn.dataset.topic === 'Default') {
-          document.querySelectorAll('.topic-toggle').forEach(otherBtn => {
-            if (otherBtn !== btn) {
-              otherBtn.classList.remove('selected');
-              const otherIcon = otherBtn.querySelector('i');
-              if (otherIcon) {
-                otherIcon.classList.remove('fa-toggle-on');
-                otherIcon.classList.add('fa-toggle-off');
-                otherIcon.style.color = '#4285f4';
-              }
-            }
-          });
-        } else {
-          const defaultBtn = document.querySelector('.topic-toggle[data-topic="Default"], .topic-toggle[data-topic="General"]');
-          if (defaultBtn) {
-            defaultBtn.classList.remove('selected');
-            const defaultIcon = defaultBtn.querySelector('i');
-            if (defaultIcon) {
-              defaultIcon.classList.remove('fa-toggle-on');
-              defaultIcon.classList.add('fa-toggle-off');
-              defaultIcon.style.color = '#4285f4';
-            }
-          }
-        }
-        btn.classList.toggle('selected');
-        const icon = btn.querySelector('i');
-        if (icon) {
-          if (btn.classList.contains('selected')) {
-            icon.classList.remove('fa-toggle-off');
-            icon.classList.add('fa-toggle-on');
-            icon.style.color = '#4285f4';
-          } else {
-            icon.classList.remove('fa-toggle-on');
-            icon.classList.add('fa-toggle-off');
-            icon.style.color = '#4285f4';
-          }
-        }
-        // Save selected topics
-        const selectedTopics = Array.from(document.querySelectorAll('.topic-toggle.selected')).map(b => b.dataset.topic);
-        localStorage.setItem('selectedTopics', JSON.stringify(selectedTopics));
-      });
-    });
   </script>
+<script>
+  // Supabase REST API config
+  const SUPABASE_URL = 'https://yahltrcxuvcgwdtsvmwk.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhaGx0cmN4dXZjZ3dkdHN2bXdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzYzMzcsImV4cCI6MjA3MDg1MjMzN30.k6GIv0kK1p6imlQmA_qE9kpl2mpu4kmZqUAhqQG_7ns';
+  const SUPABASE_TABLE = 'daily_digests';
+
+  // Helper to fetch summaries from Supabase
+  async function fetchSummaries(query = '') {
+    let url = `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=*`;
+    if (query) {
+      // If query is a date (YYYY-MM-DD), match date exactly; else search compiled text
+      const isDate = /^\d{4}-\d{2}-\d{2}$/.test(query.trim());
+      if (isDate) {
+        url += `&date=eq.${encodeURIComponent(query.trim())}`;
+      } else {
+        const escaped = query.replace(/'/g, "''");
+        const group = `(compiled.ilike.'*${escaped}*')`;
+        url += `&or=${encodeURIComponent(group)}`;
+      }
+    }
+    const res = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+      }
+    });
+    return res.ok ? await res.json() : [];
+  }
+
+  // Fetch summaries up to (and excluding if useLt=true) a UTC date string
+  async function fetchSummariesUntil(dateStr, useLt = true) {
+    let url = `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=*`;
+    if (dateStr) {
+      url += `&date=${useLt ? 'lt' : 'lte'}.${dateStr}`;
+    }
+    const res = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+      }
+    });
+    return res.ok ? await res.json() : [];
+  }
+
+  // Fetch a single day's summary using exact date match (UTC date string YYYY-MM-DD)
+  async function fetchSummaryForDate(dateStr) {
+    const url = `${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=*&date=eq.${dateStr}`;
+    const res = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+      }
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  }
+
+  // Time helpers (UTC/GMT)
+  function getUTCNow() { return new Date(); /* Date methods below use UTC via getUTCHours, etc. */ }
+  function getUTCDateStr(d = new Date()) { return d.toISOString().slice(0, 10); }
+  function getYesterdayUTCDateStr() {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - 1);
+    return getUTCDateStr(d);
+  }
+  function isBeforeSixTwentyFiveUTC(d = new Date()) {
+    const h = d.getUTCHours();
+    const m = d.getUTCMinutes();
+    return h < 6 || (h === 6 && m < 25);
+  }
+  function getDisplayDateUTC() {
+    // Before 06:25 UTC, show yesterday's summary; otherwise show today's
+    return isBeforeSixTwentyFiveUTC() ? getYesterdayUTCDateStr() : getUTCDateStr();
+  }
+  function msUntilNextUTCMidnight() {
+    const now = new Date();
+    const next = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0, 0);
+    return next - now.getTime();
+  }
+  function msUntilNextUTC625() {
+    const now = new Date();
+    const today625 = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 6, 25, 0, 0);
+    const target = (now.getTime() < today625) ? today625 : Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 6, 25, 0, 0);
+    return target - now.getTime();
+  }
+
+  // Render the primary summary card based on UTC schedule
+  function renderCard(container, summary) {
+    // If container is today-summary, show all topics fully
+    if (container.id === 'today-summary') {
+      const dateDiv = document.createElement('div');
+      dateDiv.className = 'date';
+      dateDiv.textContent = summary.date || '';
+      const bodyDiv = document.createElement('div');
+      bodyDiv.innerHTML = summary.compiled || '';
+      container.appendChild(dateDiv);
+      container.appendChild(bodyDiv);
+      return;
+    }
+    // Otherwise, archive summary: collapsed by default
+    const dateDiv = document.createElement('div');
+    dateDiv.className = 'date';
+    dateDiv.textContent = summary.date || '';
+    const bodyDiv = document.createElement('div');
+    bodyDiv.className = 'archive-summary-collapsed';
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = summary.compiled || '';
+    const sections = Array.from(tempDiv.querySelectorAll('section.digest-topic'));
+    let worldSec = sections.find(sec => {
+      const h2 = sec.querySelector('h2');
+      return h2 && /world/i.test(h2.textContent || '');
+    });
+    if (!worldSec && sections.length) {
+      worldSec = sections[0]; // fallback to first section
+    }
+    if (worldSec) {
+      bodyDiv.appendChild(worldSec.cloneNode(true));
+    }
+    const expandedDiv = document.createElement('div');
+    expandedDiv.className = 'archive-summary-expanded';
+    // Fill full compiled HTML; hidden by CSS until expanded
+    expandedDiv.innerHTML = tempDiv.innerHTML;
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'archive-toggle';
+    toggleBtn.textContent = 'Read more';
+    let expanded = false;
+    toggleBtn.addEventListener('click', () => {
+      expanded = !expanded;
+      if (expanded) {
+        bodyDiv.style.display = 'none';
+        expandedDiv.classList.add('expanded');
+        expandedDiv.style.display = '';
+        toggleBtn.textContent = 'Read less';
+      } else {
+        bodyDiv.style.display = '';
+        expandedDiv.classList.remove('expanded');
+        expandedDiv.style.display = 'none';
+        toggleBtn.textContent = 'Read more';
+      }
+    });
+    expandedDiv.style.display = 'none';
+    container.appendChild(dateDiv);
+    container.appendChild(bodyDiv);
+    container.appendChild(expandedDiv);
+    container.appendChild(toggleBtn);
+  }
+
+  // Navigation state
+  let currentViewDate = null; // null means showing today
+  let allDates = []; // Sorted array of available dates (descending)
+
+  // Fetch all available dates
+  async function fetchAllDates() {
+    const summaries = await fetchSummaries();
+    allDates = summaries.map(s => s.date).sort((a, b) => b.localeCompare(a));
+  }
+
+  // Update navigation button visibility
+  function updateNavButtons() {
+    const backBtn = document.getElementById('back-btn');
+    const forwardBtn = document.getElementById('forward-btn');
+    const todayBtn = document.getElementById('today-btn');
+    const displayDate = getDisplayDateUTC();
+    
+    if (currentViewDate === null || currentViewDate === displayDate) {
+      // Viewing today
+      backBtn.style.display = 'flex';
+      forwardBtn.style.display = 'none';
+      todayBtn.style.display = 'none';
+    } else {
+      // Viewing a past date
+      backBtn.style.display = 'flex';
+      forwardBtn.style.display = 'flex';
+      todayBtn.style.display = 'inline-block';
+    }
+  }
+
+  async function renderTodaySummary() {
+    const displayDate = currentViewDate || getDisplayDateUTC();
+    const summaries = await fetchSummaryForDate(displayDate);
+    const todayDiv = document.getElementById('today-summary');
+    todayDiv.innerHTML = '';
+    if (summaries.length) {
+      const summary = summaries[0];
+      renderCard(todayDiv, summary);
+    } else {
+      const label = isBeforeSixTwentyFiveUTC() ? 'yesterday' : 'today';
+      const messageDiv = document.createElement('div');
+      messageDiv.textContent = 'No summary available for ' + label + ' yet.';
+      todayDiv.appendChild(messageDiv);
+    }
+    updateNavButtons();
+  }
+
+  function renderAll() {
+    renderTodaySummary();
+    updateSummaryTitle();
+  }
+
+  function scheduleRefreshes() {
+    // Switch at UTC midnight
+    setTimeout(() => {
+      if (currentViewDate === null) {
+        renderAll();
+      }
+      // schedule again for next midnight
+      setInterval(() => {
+        if (currentViewDate === null) {
+          renderAll();
+        }
+      }, 24 * 60 * 60 * 1000);
+    }, msUntilNextUTCMidnight());
+
+    // Switch at 06:25 UTC
+    setTimeout(() => {
+      if (currentViewDate === null) {
+        renderAll();
+      }
+      // schedule again every 24h thereafter
+      setInterval(() => {
+        if (currentViewDate === null) {
+          renderAll();
+        }
+      }, 24 * 60 * 60 * 1000);
+    }, msUntilNextUTC625());
+  }
+
+  // Navigation handlers
+  document.getElementById('back-btn').addEventListener('click', async () => {
+    if (!allDates.length) await fetchAllDates();
+    
+    const displayDate = getDisplayDateUTC();
+    const targetDate = currentViewDate || displayDate;
+    const currentIndex = allDates.indexOf(targetDate);
+    
+    if (currentIndex < allDates.length - 1) {
+      currentViewDate = allDates[currentIndex + 1];
+      renderAll();
+    }
+  });
+
+  document.getElementById('forward-btn').addEventListener('click', async () => {
+    if (!allDates.length) await fetchAllDates();
+    
+    const displayDate = getDisplayDateUTC();
+    if (!currentViewDate) return;
+    
+    const currentIndex = allDates.indexOf(currentViewDate);
+    if (currentIndex > 0) {
+      currentViewDate = allDates[currentIndex - 1];
+      if (currentViewDate === displayDate) {
+        currentViewDate = null; // Back to today
+      }
+      renderAll();
+    }
+  });
+
+  document.getElementById('today-btn').addEventListener('click', () => {
+    currentViewDate = null;
+    renderAll();
+  });
+
+  // Initial load
+  document.addEventListener('DOMContentLoaded', async () => {
+    await fetchAllDates();
+    renderAll();
+    scheduleRefreshes();
+  });
+</script>
+<script>
+  // Update the H2 title based on UTC time window and current view
+  function updateSummaryTitle() {
+    const titleEl = document.getElementById('summary-title');
+    if (!titleEl) return;
+    
+    if (currentViewDate === null) {
+      titleEl.textContent = isBeforeSixTwentyFiveUTC() ? "Yesterday's Summary" : "Today's Summary";
+    } else {
+      // Format the date nicely
+      const date = new Date(currentViewDate + 'T00:00:00Z');
+      const options = { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' };
+      titleEl.textContent = date.toLocaleDateString('en-US', options);
+    }
+  }
+  // Also update title on load fast, before data arrives
+  document.addEventListener('DOMContentLoaded', updateSummaryTitle);
+</script>
 </body>
 </html>

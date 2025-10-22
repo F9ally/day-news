@@ -2,108 +2,116 @@ import time
 start = time.time()
 import json
 import os
+import re
+import html as html_lib
 import smtplib
 from email.mime.text import MIMEText
 from email.utils import formataddr
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
-import re
-import html as html_lib
+from io import BytesIO
+import threading
+import subprocess
+import sys
+
+# External news API defaults
+GNEWS_TOP_HEADLINES_URL = "https://gnews.io/api/v4/top-headlines"
+DEFAULT_NEWS_LANG = "en"
+DEFAULT_NEWS_COUNTRY = "us"
+DEFAULT_NEWS_MAX = 10
 
 
 # --- Config helpers ---------------------------------------------------------
 
 def load_env_file(path: str) -> Dict[str, str]:
-    values: Dict[str, str] = {}
+    vals: Dict[str, str] = {}
     if not os.path.exists(path):
-        return values
+        return vals
     with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
+        for raw in f:
+            line = raw.strip()
             if not line or line.startswith("#"):
                 continue
-            if "=" in line:
-                k, v = line.split("=", 1)
-                values[k.strip()] = v.strip()
-    return values
+            if "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            vals[k.strip()] = v.strip().strip('"')
+    return vals
 
 
-def env(name: str, default: Optional[str] = None) -> Optional[str]:
-    return os.environ.get(name, default)
+def env(name: str, default: Optional[str] = None, env_map: Optional[Dict[str, str]] = None) -> Optional[str]:
+    if name in os.environ:
+        return os.environ[name]
+    if env_map and name in env_map:
+        return env_map[name]
+    return default
 
 
-def load_config() -> Dict[str, str]:
-    # Load from ven.env first, then overlay with actual environment variables
-    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    env_path = os.path.join(root, "ven.env")
-    file_vals = load_env_file(env_path)
-    for k, v in file_vals.items():
-        # If the environment does not have this var or it's empty, populate from ven.env
-        if not os.environ.get(k):
-            os.environ[k] = v
-    # Debug: show which keys we parsed from ven.env
-    try:
-        parsed = ", ".join(sorted(file_vals.keys()))
-        print(f"[Config] Parsed from ven.env: {parsed}")
-    except Exception:
-        pass
+def load_config() -> Dict[str, Any]:
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    env_path = os.path.join(repo_root, "ven.env")
+    env_map = load_env_file(env_path)
 
-    # Build cfg preferring env vars; fallback to ven.env values if env is empty
-    def pick(name: str, default: str = "") -> str:
-        v = os.environ.get(name)
-        if v:
-            return v
-        return file_vals.get(name, default)
+    def pick(k: str, d: Optional[str] = None) -> Optional[str]:
+        return env(k, d, env_map)
 
-    cfg = {
-        # Default to World News API if not provided
-        "NEWS_API_URL": (pick("NEWS_API_URL", "https://api.worldnewsapi.com").rstrip("/")),
-        "NEWS_API_KEY": pick("NEWS_API_KEY", ""),
-        "SUPABASE_URL": (pick("SUPABASE_URL", "").rstrip("/")),
-        "SUPABASE_SERVICE_ROLE_KEY": pick("SUPABASE_SERVICE_ROLE_KEY", ""),
-        "SUPABASE_ANON_KEY": pick("SUPABASE_ANON_KEY", ""),
-        "OLLAMA_MODEL": pick("OLLAMA_MODEL", "gemma:2b"),
-        "SUPABASE_TABLE": pick("SUPABASE_TABLE", "daily_digests"),
-    }
+    cfg: Dict[str, Any] = {}
+    api_key = pick("GNEWS_API_KEY") or pick("NEWS_API_KEY") or pick("NEWSDATA_API_KEY", "")
+    cfg["NEWS_API_KEY"] = api_key or ""
+    cfg["NEWS_API_URL"] = (pick("NEWS_API_URL") or "").strip() or GNEWS_TOP_HEADLINES_URL
+    cfg["NEWS_LANG"] = (pick("NEWS_LANG", DEFAULT_NEWS_LANG) or DEFAULT_NEWS_LANG)
+    cfg["NEWS_COUNTRY"] = (pick("NEWS_COUNTRY") or "").strip()
+    cfg["NEWS_MAX"] = (pick("NEWS_MAX", str(DEFAULT_NEWS_MAX)) or str(DEFAULT_NEWS_MAX)).strip()
+    cfg["NEWS_NULLABLE"] = (pick("NEWS_NULLABLE") or "").strip()
+    cfg["NEWS_QUERY"] = (pick("NEWS_QUERY") or "").strip()
+    cfg["NEWS_FROM"] = (pick("NEWS_FROM") or "").strip()
+    cfg["NEWS_TO"] = (pick("NEWS_TO") or "").strip()
+    cfg["SUPABASE_URL"] = (pick("SUPABASE_URL", "") or "").rstrip("/")
+    cfg["SUPABASE_SERVICE_ROLE_KEY"] = pick("SUPABASE_SERVICE_ROLE_KEY", "")
+    cfg["SUPABASE_ANON_KEY"] = pick("SUPABASE_ANON_KEY", "")
+    cfg["SUPABASE_TABLE"] = pick("SUPABASE_TABLE", "daily_digests") or "daily_digests"
+    cfg["OLLAMA_MODEL"] = pick("OLLAMA_MODEL", "gemma3:4b") or "gemma3:4b"
+    cfg["SMTP_HOST"] = pick("SMTP_HOST")
+    cfg["SMTP_PORT"] = pick("SMTP_PORT", "465")
+    cfg["SMTP_USER"] = pick("SMTP_USER")
+    cfg["SMTP_PASS"] = pick("SMTP_PASS")
+    cfg["SMTP_SENDER"] = pick("SMTP_SENDER")
+    cfg["SMTP_TO"] = pick("SMTP_TO")
     return cfg
 
 
-# --- Domain -----------------------------------------------------------------
+# --- Topics ----------------------------------------------------------------
 
-Topic = Dict[str, str]
-
-
-def get_topics() -> List[Topic]:
-    # 10 requested categories (use category param where supported by the API)
-    # categories: technology, business, politics, health, science, entertainment, sports, environment, education, world
+def get_topics() -> List[Dict[str, str]]:
     return [
+        {"category": "general"},
         {"category": "world"},
-        {"category": "politics"},
+        {"category": "us"},
         {"category": "business"},
         {"category": "technology"},
         {"category": "entertainment"},
         {"category": "sports"},
-        {"category": "health"},
-        {"category": "environment"},
         {"category": "science"},
-        {"category": "education"},
+        {"category": "health"},
     ]
 
-# Simple keyword heuristics to avoid off-topic picks for certain categories
+
 CATEGORY_KEYWORDS: Dict[str, List[str]] = {
-    "environment": [
-        "climate", "emission", "wildlife", "ecosystem", "renewable", "conservation",
-        "biodiversity", "pollution", "carbon", "deforestation", "sustainability", "habitat"
-    ],
-    "education": [
-        "school", "student", "university", "college", "curriculum", "teacher",
-        "education", "exam", "classroom", "tuition", "degree", "campus"
-    ],
     "entertainment": [
         "film", "movie", "tv", "series", "celebrity", "music", "concert", "festival",
         "box office", "trailer", "actor", "actress", "netflix", "hbo"
+    ],
+    "science": [
+        "research", "scientist", "space", "nasa", "laboratory", "physics", "biology",
+        "astronomy", "experiment", "quantum", "biotech", "discovery"
+    # --- Ollama bootstrap -------------------------------------------------------
+
+    ],
+    "health": [
+        "health", "hospital", "medical", "vaccine", "virus", "disease", "clinic",
+        "doctor", "patient", "treatment", "wellness", "public health"
     ],
 }
 
@@ -114,7 +122,7 @@ def _is_article_relevant(category: Optional[str], article: Dict[str, Any]) -> bo
     cat = category.lower()
     keywords = CATEGORY_KEYWORDS.get(cat)
     if not keywords:
-        return True  # only enforce for selected categories
+        return True
     text = " ".join([
         str(article.get("title") or ""),
         str(article.get("description") or ""),
@@ -124,42 +132,134 @@ def _is_article_relevant(category: Optional[str], article: Dict[str, Any]) -> bo
     return hits >= 1
 
 
+# --- News API fetchers -----------------------------------------------------
 
-# NewsData.io API endpoint and key
-NEWSDATA_API_URL = "https://newsdata.io/api/1/latest"
-NEWSDATA_API_KEY = os.getenv("NEWSDATA_API_KEY")
+def _build_news_params(cfg: Dict[str, Any], category: str, page: int) -> Dict[str, Any]:
+    raw_max = cfg.get("NEWS_MAX")
+    try:
+        max_value = max(1, min(int(raw_max), 100)) if raw_max else DEFAULT_NEWS_MAX
+    except (TypeError, ValueError):
+        max_value = DEFAULT_NEWS_MAX
 
-def try_newsdata_api(category, page=1):
-    params = {
-        "apikey": NEWSDATA_API_KEY,
-        "language": "en",
-        "category": category,
-        "size": 10,  # free user default
+    params: Dict[str, Any] = {
+        "category": (category or "").lower() or "general",
+        "lang": cfg.get("NEWS_LANG") or DEFAULT_NEWS_LANG,
+        "max": max_value,
         "page": page,
+        "apikey": cfg.get("NEWS_API_KEY"),
     }
-    response = requests.get(NEWSDATA_API_URL, params=params)
-    quota_left = response.headers.get("X-RateLimit-Remaining")
-    print(f"Quota left: {quota_left}")
-    if response.status_code == 200:
-        data = response.json()
-        articles = data.get("results", [])
-        if articles:
-            return articles[0]  # return first article
-        else:
-            print(f"No articles found for category {category}")
-            return None
-    else:
-        print(f"Error: {response.status_code} {response.text}")
+
+    country = cfg.get("NEWS_COUNTRY") or DEFAULT_NEWS_COUNTRY
+    if country and country.lower() != "any":
+        params["country"] = country
+
+    nullable = cfg.get("NEWS_NULLABLE")
+    if nullable:
+        params["nullable"] = nullable
+
+    query = cfg.get("NEWS_QUERY")
+    if query:
+        params["q"] = query
+
+    date_from = cfg.get("NEWS_FROM")
+    if date_from:
+        params["from"] = date_from
+
+    date_to = cfg.get("NEWS_TO")
+    if date_to:
+        params["to"] = date_to
+
+    return params
+
+
+def try_gnews_api(cfg: Dict[str, Any], category: str, page: int = 1) -> Optional[Dict[str, Any]]:
+    if not cfg.get("NEWS_API_KEY"):
+        print("[News API] Missing API key; set GNEWS_API_KEY or NEWS_API_KEY in ven.env.")
         return None
 
-def try_newsdata_api_with_retries(category, max_attempts=3):
-    seen_urls = set()
-    for attempt in range(max_attempts):
-        article = try_newsdata_api(category, page=attempt+1)
-        if article and article.get("link") not in seen_urls:
-            seen_urls.add(article.get("link"))
-            return article
-        print(f"[{category}] No article found, retrying...")
+    params = _build_news_params(cfg, category, page)
+    url = cfg.get("NEWS_API_URL") or GNEWS_TOP_HEADLINES_URL
+
+    try:
+        response = requests.get(url, params=params, timeout=30)
+    except requests.RequestException as exc:
+        print(f"[News API] Request error for {category} page {page}: {exc}")
+        return None
+
+    quota_left = response.headers.get("X-RateLimit-Remaining") or response.headers.get("x-ratelimit-remaining")
+    if quota_left is not None:
+        print(f"[News API] Quota left: {quota_left}")
+
+    if response.status_code != 200:
+        snippet = response.text[:200] if response.text else "<no body>"
+        print(f"[News API] HTTP {response.status_code}: {snippet}")
+        return None
+
+    try:
+        data = response.json()
+    except ValueError:
+        print("[News API] Failed to decode JSON response.")
+        return None
+
+    articles = data.get("articles") or []
+    if not isinstance(articles, list):
+        print("[News API] Unexpected payload format; 'articles' is not a list.")
+        return None
+
+    if not articles:
+        print(f"[News API] No articles returned for {category} (page {page}).")
+        return None
+
+    # Return the first article; callers handle duplicate / relevance filtering.
+    article = articles[0]
+    url_field = article.get("url") or (article.get("source") or {}).get("url")
+    content = article.get("content") or article.get("description") or ""
+
+    return {
+        "title": article.get("title"),
+        "description": article.get("description") or "",
+        "url": url_field,
+        "published_at": article.get("publishedAt") or article.get("published_at"),
+        "content": content,
+        "quota_left": quota_left,
+    }
+
+
+def fetch_news_article_with_retries(
+    cfg: Dict[str, Any],
+    category: str,
+    max_attempts: int = 1,
+    global_exclude: Optional[set] = None,
+) -> Optional[Dict[str, Any]]:
+    seen: set = set()
+    for attempt in range(1, max_attempts + 1):
+        article = try_gnews_api(cfg, category, page=attempt)
+        if not article:
+            print(f"[{category}] No article found on attempt {attempt}; retrying...")
+            continue
+
+        url = article.get("url") or ""
+        normalized = url.strip().lower() if url else ""
+        title_key = (article.get("title") or "").strip().lower()
+        key = normalized or title_key
+        # Cross-category deduplication: avoid articles seen in other sections
+        if global_exclude and key and key in global_exclude:
+            print(f"[{category}] Skipping globally-duplicate result; retrying...")
+            continue
+        if key and key in seen:
+            print(f"[{category}] Skipping duplicate result; retrying...")
+            continue
+
+        if not _is_article_relevant(category, article):
+            print(f"[{category}] Skipping off-topic result; retrying...")
+            if key:
+                seen.add(key)
+            continue
+
+        if key:
+            seen.add(key)
+        return article
+
     print(f"[{category}] All attempts failed.")
     return None
 
@@ -167,30 +267,28 @@ def try_newsdata_api_with_retries(category, max_attempts=3):
 # --- Summarization via Ollama ----------------------------------------------
 
 def summarize_with_ollama(model: str, topic: str, title: str, content: str, url: Optional[str]) -> str:
-    """
-    Use local Ollama (Mistral) to summarize a single article.
-    Falls back to a simple heuristic summary if ollama isn't reachable.
-    """
     prompt = f"""
-You are a precise news editor. Summarize the article strictly for the category: {topic}.
+You are a professional news editor creating concise summaries for a daily news digest.
 
-Hard rules:
-- Use third-person only (no first-person like "I", "we").
-- Keep focus on the given category; do not include other category labels (no "Politics:", "Economy:").
-- Be factual and concise; avoid speculation.
-- No questions to the reader; no calls to action.
+Category: {topic}
 
-Return ONLY in this format (no extra text):
-Headline: <a concise headline for this article, <= 120 chars>
-Summary:
-• point 1 (a short, factual sentence)
-• point 2 (a short, factual sentence)
-• point 3 (optional; include only if meaningful)
+Instructions:
+1. Create a COMPLETE, engaging headline (8-15 words) that captures the key story
+2. Write a clear, factual summary well summarising each article provided, highlighting the key points and interesting details (3-5 sentences)
+3. Use third-person voice only
+4. Focus on facts from the article - no speculation or opinions
+5. Make the headline self-contained and informative
+6. Do NOT repeat the headline text in the summary
 
-Title: {title}
-URL: {url or 'N/A'}
-Article content (truncated):
+Article Title: {title}
+Source URL: {url or 'N/A'}
+
+Article Content:
 {(content[:4000] + '...') if content and len(content) > 4000 else (content or '')}
+
+Required Format (provide exactly this):
+Headline: [Your complete, engaging headline here]
+Summary: [Your 3-5 sentence factual summary here]
 """.strip()
 
     for attempt in range(1, 4):
@@ -310,7 +408,7 @@ def _is_digest_day_utc(published_at: Optional[str]) -> bool:
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
         dt_utc = dt.astimezone(timezone.utc)
-        # For NewsData.io, just check if published within last 48 hours
+    # Treat anything published in the previous 48 hours as relevant for the digest
         age = datetime.now(timezone.utc) - dt_utc
         return age.total_seconds() <= 48 * 3600
     except Exception:
@@ -318,30 +416,27 @@ def _is_digest_day_utc(published_at: Optional[str]) -> bool:
 
 
 def _extract_headline_and_points(cleaned_text: str) -> Tuple[str, List[str]]:
-    """Parse the model output to extract the Headline and bullet points."""
+    """Parse the model output to extract the Headline and bullet points.
+
+    Notes:
+    - Avoid capturing the "Summary:" portion in the headline even if newlines
+      were collapsed during cleaning.
+    - Do not alter the summary content itself; just return it as a single paragraph.
+    """
+    HEADLINE_MAX_LEN = 180  # allow longer headlines to avoid premature cut-offs
     headline = ""
-    points: List[str] = []
-    # Find Headline: line
-    m = re.search(r"Headline:\s*(.+)", cleaned_text, re.IGNORECASE)
+    summary = ""
+    # Capture headline up to the beginning of "Summary:" or end of string
+    m = re.search(r"Headline:\s*(.+?)(?:\s+Summary:|$)", cleaned_text, re.IGNORECASE | re.DOTALL)
     if m:
         headline = m.group(1).strip()
-    # Find Summary section and bullets
-    # Accept both '•' bullets and lines starting with hyphen/asterisk
-    summary_part = cleaned_text
-    sm = re.search(r"Summary:\s*(.*)$", cleaned_text, re.IGNORECASE | re.DOTALL)
+        if len(headline) > HEADLINE_MAX_LEN:
+            headline = headline[:HEADLINE_MAX_LEN].rstrip()
+    # Capture summary after "Summary:"
+    sm = re.search(r"Summary:\s*(.+)", cleaned_text, re.IGNORECASE | re.DOTALL)
     if sm:
-        summary_part = sm.group(1).strip()
-    for line in summary_part.split("\n"):
-        ln = line.strip()
-        if not ln:
-            continue
-        # Normalize bullet markers
-        ln = re.sub(r"^(?:[\-\*\u2022]|•)\s*", "", ln)
-        points.append(ln)
-    # If no bullets found but text exists, split by '•'
-    if not points and "•" in summary_part:
-        points = [s.strip() for s in summary_part.split("•") if s.strip()]
-    return headline, points
+        summary = sm.group(1).strip()
+    return headline, [summary] if summary else []
 
 
 def compile_digest(items: List[Dict[str, str]]) -> str:
@@ -350,21 +445,20 @@ def compile_digest(items: List[Dict[str, str]]) -> str:
     Build safe HTML with topic header, bold article headline, and per-line bullet paragraphs.
     """
     topic_emojis = {
+        "general": "📰",
         "world": "🌍",
-        "politics": "📰",
+        "us": "🦅",
         "business": "💰",
         "technology": "💻",
         "entertainment": "🎭",
         "sports": "🏅",
-        "health": "🩺",
-        "environment": "🌱",
         "science": "🔬",
-        "education": "🎓",
+        "health": "🩺",
     }
     seen = set()
     html_blocks = []
     # Helper to strip leading topic labels the model may add
-    topic_label_re = re.compile(r"^(World|Politics|Business|Technology|Entertainment|Sports|Health|Environment|Science|Education)\s*:\s*", re.IGNORECASE)
+    topic_label_re = re.compile(r"^(General|World|US|Business|Technology|Entertainment|Sports|Science|Health)\s*:\s*", re.IGNORECASE)
     for it in items:
         topic_title = it.get("topic", "General")
         summary = it.get("summary", "")
@@ -407,11 +501,13 @@ def compile_digest(items: List[Dict[str, str]]) -> str:
             except Exception:
                 safe_url = None
         # Headings with optional links
+        # Display title special-casing: always render "US" in all caps
+        display_topic = "US" if key == "us" else html_lib.escape(topic_title)
         if safe_url:
-            h2_html = f'<h2><a href="{safe_url}" target="_blank" rel="noopener noreferrer">{emoji} {html_lib.escape(topic_title)}</a></h2>'
+            h2_html = f'<h2><a href="{safe_url}" target="_blank" rel="noopener noreferrer">{emoji} {display_topic}</a></h2>'
             h3_html = f'<h3 class="digest-headline"><a href="{safe_url}" target="_blank" rel="noopener noreferrer">{headline}</a></h3>'
         else:
-            h2_html = f'<h2>{emoji} {html_lib.escape(topic_title)}</h2>'
+            h2_html = f'<h2>{emoji} {display_topic}</h2>'
             h3_html = f'<h3 class="digest-headline">{headline}</h3>'
         block = (
             f'<section class="digest-topic">'
@@ -498,30 +594,391 @@ def save_local_fallback(compiled: str, items: List[Dict[str, Any]]) -> str:
     return html_path
 
 
+# --- Audio generation (Kokoro TTS) -----------------------------------------
+
+def build_narration_text_from_compiled(compiled_html: str) -> str:
+    """Create narration text that exactly mirrors today's displayed summary.
+
+    Strategy: strip HTML tags from the compiled digest, preserve natural breaks
+    after headings and paragraph tags, and unescape entities so the spoken
+    text matches what users read on the page. Keep a short intro, no date.
+    Remove emojis from topic headings.
+    """
+    intro = "This is Day2Day News."
+    if not compiled_html:
+        return intro + " No news items are available today."
+    t = compiled_html
+    # Normalize tag closings to line breaks for readability
+    t = re.sub(r"</(h1|h2|h3|p|section)>", "\n", t, flags=re.IGNORECASE)
+    t = re.sub(r"<br\s*/?>", "\n", t, flags=re.IGNORECASE)
+    # Remove all remaining tags
+    t = re.sub(r"<[^>]+>", "", t)
+    # Unescape entities (compiled already escaped article text)
+    t = html_lib.unescape(t)
+    # Remove emojis (common Unicode ranges for emojis)
+    # Match emoji pictographs and symbols
+    t = re.sub(r'[\U0001F300-\U0001FAFF\U00002600-\U000027BF\U0001F900-\U0001F9FF\U0001F600-\U0001F64F\U0001F680-\U0001F6FF]+', '', t)
+    # Collapse whitespace but preserve newlines
+    t = re.sub(r"\r", "", t)
+    # Collapse multiple blank lines
+    t = re.sub(r"\n\s*\n+", "\n\n", t)
+    # Trim lines
+    lines = [ln.strip() for ln in t.split("\n")]
+    text_body = "\n".join([ln for ln in lines if ln])
+    outro = "That's all for today from Day2Day News."
+    full_text = intro + "\n" + text_body + "\n" + outro
+    # Save narration text for debugging
+    try:
+        debug_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "out", "narration_debug.txt")
+        with open(debug_path, "w", encoding="utf-8") as f:
+            f.write(full_text)
+        print(f"[Audio] Narration text saved to: {debug_path}")
+    except Exception:
+        pass
+    return full_text
+
+
+def generate_audio_with_kokoro(text: str, voice: str = "am_michael") -> bytes:
+    """Generate spoken audio with Kokoro.
+
+    Priority order based on your working setup:
+    1) kokoro.KPipeline (observed in your working test)
+    2) kokoro_onnx.Kokoro
+
+    Returns WAV bytes or empty bytes on failure.
+    """
+    # 1) Try the user's confirmed working API: kokoro.KPipeline
+    try:
+        from kokoro import KPipeline  # type: ignore
+        pipeline = KPipeline(lang_code='a')
+        # KPipeline yields (ps, go, audio) for chunks; collect all audio to cover full narration
+        sr = 24000  # your example saved with 24kHz
+        all_samples: List[float] = []
+        for _ps, _go, audio in pipeline(text, voice=voice):
+            if audio is None:
+                continue
+            try:
+                # Extend with chunk samples
+                all_samples.extend(float(x) for x in audio)
+            except Exception:
+                # If not iterable, skip
+                continue
+        if all_samples:
+            import wave, struct
+            with BytesIO() as bio:
+                with wave.open(bio, 'wb') as wf:
+                    wf.setnchannels(1)
+                    wf.setsampwidth(2)
+                    wf.setframerate(sr)
+                    def _clip_to_i16(x: float) -> int:
+                        if x > 1.0:
+                            x = 1.0
+                        elif x < -1.0:
+                            x = -1.0
+                        return int(x * 32767.0)
+                    # Write all frames sequentially
+                    for x in all_samples:
+                        try:
+                            wf.writeframes(struct.pack('<h', _clip_to_i16(float(x))))
+                        except Exception:
+                            continue
+                data = bio.getvalue()
+            print(f"[Audio] Generated {len(data)} bytes of WAV audio (kokoro.KPipeline, concatenated)")
+            return data
+        else:
+            print("[Audio] KPipeline yielded no audio frames")
+    except Exception as e:
+        # Fall back to kokoro_onnx
+        pass
+
+    # 2) Try kokoro_onnx API
+    try:
+        import tempfile
+        from kokoro_onnx import Kokoro  # type: ignore
+        tts = Kokoro()
+        # Try common method names returning bytes/array
+        for meth_name in ("generate", "tts", "synthesize", "create", "speak"):
+            meth = getattr(tts, meth_name, None)
+            if not callable(meth):
+                continue
+            try:
+                try:
+                    res = meth(text, voice=voice)
+                except TypeError:
+                    res = meth(text, voice)
+                if res is None:
+                    continue
+                # If result is (samples, sr)
+                if isinstance(res, tuple) and len(res) == 2:
+                    samples, sr = res
+                    import wave, struct
+                    nch = 1
+                    try:
+                        first = samples[0]
+                        if isinstance(first, (list, tuple)):
+                            nch = max(1, len(first) or 1)
+                    except Exception:
+                        pass
+                    with BytesIO() as bio:
+                        with wave.open(bio, 'wb') as wf:
+                            wf.setnchannels(nch)
+                            wf.setsampwidth(2)
+                            wf.setframerate(int(sr))
+                            def _clip_to_i16(x: float) -> int:
+                                if x > 1.0:
+                                    x = 1.0
+                                elif x < -1.0:
+                                    x = -1.0
+                                return int(x * 32767.0)
+                            if nch == 1:
+                                for x in samples:
+                                    try:
+                                        wf.writeframes(struct.pack('<h', _clip_to_i16(float(x))))
+                                    except Exception:
+                                        continue
+                            else:
+                                for frame in samples:
+                                    try:
+                                        for ch in frame:
+                                            wf.writeframes(struct.pack('<h', _clip_to_i16(float(ch))))
+                                    except Exception:
+                                        continue
+                        data = bio.getvalue()
+                    if data:
+                        print(f"[Audio] Generated {len(data)} bytes of WAV audio (kokoro_onnx tuple)")
+                        return data
+                # If object has bytes/attribute
+                for attr in ("speech", "audio", "wav", "data"):
+                    if hasattr(res, attr):
+                        data = getattr(res, attr)
+                        try:
+                            data = bytes(data)
+                        except Exception:
+                            pass
+                        if isinstance(data, (bytes, bytearray)) and data:
+                            print(f"[Audio] Generated {len(data)} bytes of WAV audio (kokoro_onnx object)")
+                            return bytes(data)
+                if isinstance(res, (bytes, bytearray)) and res:
+                    print(f"[Audio] Generated {len(res)} bytes of WAV audio (kokoro_onnx bytes)")
+                    return bytes(res)
+            except Exception:
+                continue
+        # Try save-to-file style APIs
+        for save_name in ("save_wav", "save", "to_wav", "write_wav"):
+            save = getattr(tts, save_name, None)
+            if not callable(save):
+                continue
+            try:
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=True) as tmp:
+                    try:
+                        save(text, voice=voice, to=tmp.name)
+                    except TypeError:
+                        try:
+                            save(text, tmp.name, voice=voice)
+                        except TypeError:
+                            save(text, tmp.name)
+                    tmp.seek(0)
+                    data = tmp.read()
+                    if data:
+                        print(f"[Audio] Generated {len(data)} bytes of WAV audio (kokoro_onnx saved)")
+                        return data
+            except Exception:
+                continue
+    except Exception:
+        pass
+
+    print("[Audio] Kokoro TTS generation failed: No compatible API path succeeded")
+    return b""
+
+
+def ensure_supabase_bucket(base_url: str, service_key: str, bucket: str) -> None:
+    """Ensure a public storage bucket exists. Ignore errors if it already exists."""
+    if not base_url:
+        return
+    url = f"{base_url}/storage/v1/bucket"
+    headers = {
+        "apikey": service_key,
+        "Authorization": f"Bearer {service_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {"name": bucket, "public": True}
+    try:
+        r = requests.post(url, headers=headers, json=payload, timeout=15)
+        if r.status_code in (200, 201):
+            print(f"[Storage] Created bucket '{bucket}'")
+        elif r.status_code == 409:
+            # Bucket already exists
+            pass
+        else:
+            print(f"[Storage] Bucket create status {r.status_code}: {r.text[:200]}")
+    except requests.RequestException as e:
+        print(f"[Storage] Bucket create error: {e}")
+
+
+def upload_audio_to_supabase(base_url: str, service_key: str, bucket: str, path: str, data: bytes, content_type: str = "audio/wav") -> Tuple[bool, str]:
+    if not data:
+        return False, "No audio data to upload"
+    url = f"{base_url}/storage/v1/object/{bucket}/{path}"
+    headers = {
+        "apikey": service_key,
+        "Authorization": f"Bearer {service_key}",
+        "Content-Type": content_type,
+        "x-upsert": "true",  # overwrite if exists
+    }
+    try:
+        r = requests.post(url, headers=headers, data=data, timeout=60)
+        if r.status_code in (200, 201):
+            return True, "Uploaded audio to storage"
+        else:
+            return False, f"Storage upload failed: {r.status_code} - {r.text[:200]}"
+    except requests.RequestException as e:
+        return False, f"Storage upload error: {e}"
+
+
+# --- Ollama bootstrap -------------------------------------------------------
+
+def _ollama_http_ok() -> bool:
+    try:
+        r = requests.get("http://127.0.0.1:11434/api/tags", timeout=2)
+        return r.status_code == 200
+    except Exception:
+        return False
+
+
+def ensure_ollama_running_and_model(model: str, wait_seconds: int = 60, pull_timeout: int = 600) -> None:
+    """Ensure the Ollama server is running and the model is available.
+
+    - If the server isn't running, start it in the background and wait up to wait_seconds.
+    - Ensure the requested model exists; if not, attempt to pull it (up to pull_timeout seconds).
+    """
+    model = model or "gemma3:4b"
+    # Quick path: if HTTP responds, assume it's running
+    if not _ollama_http_ok():
+        print("[Ollama] Server not detected; starting daemon...")
+        try:
+            creationflags = 0
+            if os.name == "nt":
+                creationflags = getattr(subprocess, "DETACHED_PROCESS", 0x00000008) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
+            subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL, creationflags=creationflags)
+        except FileNotFoundError:
+            print("[Ollama] 'ollama' CLI not found in PATH. Skipping server start.")
+            return
+        except Exception as e:
+            print(f"[Ollama] Failed to start server: {e}")
+            return
+        # Wait for readiness
+        start_wait = time.time()
+        while time.time() - start_wait < wait_seconds:
+            if _ollama_http_ok():
+                print("[Ollama] Server is up.")
+                break
+            time.sleep(1.5)
+        else:
+            print("[Ollama] Server did not become ready in time; continuing anyway.")
+
+    # Ensure model exists
+    try:
+        res = subprocess.run(["ollama", "show", model], capture_output=True, text=True, timeout=20)
+        if res.returncode != 0:
+            print(f"[Ollama] Model '{model}' not found locally; pulling...")
+            pull = subprocess.run(["ollama", "pull", model], text=True, timeout=pull_timeout)
+            if pull.returncode == 0:
+                print(f"[Ollama] Pulled model '{model}'.")
+            else:
+                print(f"[Ollama] Failed to pull model '{model}' (code {pull.returncode}).")
+    except FileNotFoundError:
+        print("[Ollama] 'ollama' CLI not found; cannot verify or pull model.")
+    except subprocess.TimeoutExpired:
+        print("[Ollama] Model check/pull timed out.")
+    except Exception as e:
+        print(f"[Ollama] Error ensuring model: {e}")
+
+
+# --- Timeout watchdog and alert --------------------------------------------
+
+def send_timeout_email(cfg: Dict[str, Any], elapsed_seconds: float) -> None:
+    subject = "Day News Digest: Script Timeout"
+    ts = datetime.now(timezone.utc).isoformat()
+    mins = int(elapsed_seconds // 60)
+    secs = int(elapsed_seconds % 60)
+    body = (
+        "The daily digest script exceeded the maximum runtime and was terminated.\n\n"
+        f"Timestamp (UTC): {ts}\n"
+        f"Elapsed: {mins} minutes {secs} seconds\n"
+        "Max allowed: 20 minutes\n\n"
+        "This alert was sent automatically."
+    )
+
+    smtp_host = cfg.get("SMTP_HOST")
+    smtp_port = int(cfg.get("SMTP_PORT", "465") or "465")
+    smtp_user = cfg.get("SMTP_USER")
+    smtp_pass = cfg.get("SMTP_PASS")
+    sender = cfg.get("SMTP_SENDER")
+    # Use configured recipient if present; otherwise, default to the provided address
+    recipient = cfg.get("SMTP_TO") or "justwebsites.contact@gmail.com"
+
+    if not all([smtp_host, smtp_user, smtp_pass, sender, recipient]):
+        print("Timeout email skipped: SMTP credentials are not fully configured.")
+        return
+
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    msg["From"] = formataddr(("Day News", str(sender)))
+    msg["To"] = str(recipient)
+
+    try:
+        smtp = smtplib.SMTP_SSL(str(smtp_host), smtp_port)
+        smtp.login(str(smtp_user), str(smtp_pass))
+        smtp.sendmail(str(sender), [str(recipient)], msg.as_string())
+        smtp.quit()
+        print(f"Timeout notification sent to {recipient}")
+    except Exception as e:
+        print(f"Failed to send timeout email: {e}")
+
+
+def start_timeout_watchdog(seconds: int, cfg: Dict[str, Any]):
+    """Start a background timer that will email and terminate if runtime exceeds 'seconds'."""
+    def _trigger():
+        elapsed = time.time() - start
+        try:
+            send_timeout_email(cfg, elapsed)
+        except Exception as e:
+            print(f"[Timeout] Failed to send notification: {e}")
+        print(f"[Timeout] Exceeded {seconds} seconds; exiting.")
+        os._exit(2)
+
+    t = threading.Timer(seconds, _trigger)
+    t.daemon = True
+    t.start()
+    return t
+
+
 # --- Main -------------------------------------------------------------------
 
 def main() -> int:
     cfg = load_config()
+    # Start a 20-minute watchdog to abort and email if the script overruns.
+    watchdog = start_timeout_watchdog(20 * 60, cfg)
     def _mask(val: Optional[str]) -> str:
         if not val:
             return "<empty>"
         v = str(val)
         return (v[:4] + "..." + v[-4:]) if len(v) > 8 else "<short>"
     print(f"[Config] SUPABASE_URL={cfg.get('SUPABASE_URL','')} TABLE={cfg.get('SUPABASE_TABLE','')} KEY={_mask(cfg.get('SUPABASE_SERVICE_ROLE_KEY'))}")
-    missing = [k for k in ("NEWS_API_URL", "NEWS_API_KEY", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY") if not cfg.get(k)]
+    missing = [k for k in ("NEWS_API_KEY", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY") if not cfg.get(k)]
     if missing:
-        print(f"Missing required config values: {', '.join(missing)}. Check ven.env.")
-        # continue anyway; user may want to run partially
+        print(f"Missing config values: {', '.join(missing)}. Check ven.env.")
 
     topics = get_topics()
 
     fetched: List[Dict[str, Any]] = []
     failed_categories: List[str] = []
-    seen_urls: set = set()
     last_quota_seen: Optional[str] = None
+    # Track global duplicates across sections (by URL or title)
+    global_seen: set = set()
     for t in topics:
-        cat = t.get("category")
-        article = try_newsdata_api_with_retries(cat, max_attempts=3)
+        cat = t.get("category") or "general"
+        article = fetch_news_article_with_retries(cfg, cat, max_attempts=5, global_exclude=global_seen)
         if not article:
             failed_categories.append(cat)
             article = {
@@ -532,23 +989,38 @@ def main() -> int:
                 "content": "",
             }
         else:
-            if article.get("url"):
-                seen_urls.add(article["url"])
             if article.get("quota_left") is not None:
                 last_quota_seen = str(article["quota_left"])
+            # Record globally seen key for cross-section dedupe
+            url = (article.get("url") or "").strip().lower()
+            title_key = (article.get("title") or "").strip().lower()
+            key = url or title_key
+            if key:
+                global_seen.add(key)
         fetched.append({
             "topic": cat,
             **article,
         })
+        time.sleep(1)  # Add a 1-second delay between requests
 
     # Email notification if any failures
     if failed_categories:
-        send_failure_email(failed_categories)
+        send_failure_email(cfg, failed_categories)
+
+    # Ensure Ollama server and model are ready before summarization
+    try:
+        ensure_ollama_running_and_model(cfg.get("OLLAMA_MODEL", "gemma3:4b") or "gemma3:4b")
+    except Exception as e:
+        print(f"[Ollama] Bootstrap error (non-fatal): {e}")
 
     # Summarize each
     items_for_supabase: List[Dict[str, Any]] = []
     for item in fetched:
-        topic_title = item["topic"].replace("-", "/").title()
+        # Normalize topic display: keep everything Title Case except ensure "US" stays uppercase
+        raw_topic = item["topic"]
+        topic_title = raw_topic.replace("-", "/").title()
+        if raw_topic.lower() == "us":
+            topic_title = "US"
         summary = summarize_with_ollama(
             cfg.get("OLLAMA_MODEL", "gemma:2b"),
             topic_title,
@@ -576,30 +1048,55 @@ def main() -> int:
     if not ok:
         print("Note: Supabase insert failed. Ensure your SUPABASE_URL is like https://<ref>.supabase.co and the key/table are valid.")
 
+    # Generate and upload audio summary
+    try:
+        date_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        narration = build_narration_text_from_compiled(compiled)
+        audio_bytes = generate_audio_with_kokoro(narration, voice="am_michael")
+        if audio_bytes:
+            bucket = "news-audio"
+            ensure_supabase_bucket(cfg["SUPABASE_URL"], cfg["SUPABASE_SERVICE_ROLE_KEY"], bucket)
+            obj_path = f"{date_iso}.wav"
+            up_ok, up_msg = upload_audio_to_supabase(
+                cfg["SUPABASE_URL"], cfg["SUPABASE_SERVICE_ROLE_KEY"], bucket, obj_path, audio_bytes, "audio/wav"
+            )
+            print(up_msg)
+            if up_ok:
+                public_url = f"{cfg['SUPABASE_URL']}/storage/v1/object/public/{bucket}/{obj_path}"
+                print(f"[Audio] Public URL: {public_url}")
+        else:
+            print("[Audio] Skipping upload because audio generation failed or returned empty data")
+    except Exception as e:
+        print(f"[Audio] Unexpected error during audio pipeline: {e}")
+
     # Always save local fallback
     out_path = save_local_fallback(compiled, items_for_supabase)
     print(f"Saved local digest to: {out_path}")
 
-    # Show remaining World News API daily quota if observed
+    # Show remaining daily quota if observed
     if last_quota_seen is not None:
-        print(f"[API] X-API-Quota-Left today: {last_quota_seen}")
+        print(f"[API] X-RateLimit-Remaining today: {last_quota_seen}")
 
     print(f"Total runtime: {time.time() - start:.2f} seconds")
+    # Cancel watchdog on successful completion
+    try:
+        watchdog.cancel()
+    except Exception:
+        pass
     return 0
 
-
-def send_failure_email(failed_categories):
+def send_failure_email(cfg: Dict[str, Any], failed_categories: List[str]) -> None:
     subject = "Day News Digest: API Failure Notification"
     body = (
         "The following categories failed to fetch news after 3 attempts:\n\n" + ", ".join(failed_categories)
     )
 
-    smtp_host = os.environ.get("SMTP_HOST")
-    smtp_port = int(os.environ.get("SMTP_PORT", "465"))
-    smtp_user = os.environ.get("SMTP_USER")
-    smtp_pass = os.environ.get("SMTP_PASS")
-    sender = os.environ.get("SMTP_SENDER")
-    recipient = os.environ.get("SMTP_TO")
+    smtp_host = cfg.get("SMTP_HOST")
+    smtp_port = int(cfg.get("SMTP_PORT", "465") or "465")
+    smtp_user = cfg.get("SMTP_USER")
+    smtp_pass = cfg.get("SMTP_PASS")
+    sender = cfg.get("SMTP_SENDER")
+    recipient = cfg.get("SMTP_TO")
 
     if not all([smtp_host, smtp_user, smtp_pass, sender, recipient]):
         print("Email notification skipped: SMTP credentials are not configured.")
@@ -607,13 +1104,13 @@ def send_failure_email(failed_categories):
 
     msg = MIMEText(body)
     msg["Subject"] = subject
-    msg["From"] = formataddr(("Day News", sender))
-    msg["To"] = recipient
+    msg["From"] = formataddr(("Day News", str(sender)))
+    msg["To"] = str(recipient)
 
     try:
-        smtp = smtplib.SMTP_SSL(smtp_host, smtp_port)
-        smtp.login(smtp_user, smtp_pass)
-        smtp.sendmail(sender, [recipient], msg.as_string())
+        smtp = smtplib.SMTP_SSL(str(smtp_host), smtp_port)
+        smtp.login(str(smtp_user), str(smtp_pass))
+        smtp.sendmail(str(sender), [str(recipient)], msg.as_string())
         smtp.quit()
         print(f"Failure notification sent to {recipient}")
     except Exception as e:
