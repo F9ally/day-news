@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Prevent committing environment files and other sensitive secrets
+set -euo pipefail
+
+blocked_regex='(^|/)(ven\.env|\.env(\..*)?$|.*\.env(\.|$))'
+
+# List staged files
+staged=$(git diff --cached --name-only)
+
+if echo "$staged" | grep -Eiq "$blocked_regex"; then
+  echo "\n[pre-commit] Blocked: environment file detected in the commit (ven.env/.env)." >&2
+  echo "Add to .gitignore and use an example file instead (e.g., ven.env.example)." >&2
+  exit 1
+fi
+
+exit 0
