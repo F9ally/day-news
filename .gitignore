@@ -1,10 +1,25 @@
-# Nestjs specific
-/dist
+## General
+.DS_Store
+Thumbs.db
+
+## Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+## Node (if present)
 /node_modules
+/dist
 /build
 /tmp
 
-# Logs
+## Logs
 logs
 *.log
 npm-debug.log*
@@ -13,12 +28,19 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# dotenv environment variable files
+## Environment and secrets
 .env
-.env.development
-.env.test
-.env.production
+.env.*
+ven.env
+ven.env.local
 
-# temp directory
+## App artifacts
+out/
+scripts/__pycache__/
+
+## Editor
+.vscode/
+
+## Temp
 .temp
 .tmp
