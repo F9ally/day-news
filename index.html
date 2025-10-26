@@ -97,10 +97,12 @@
       font-weight: 500;
       letter-spacing: 0.01em;
     }
-    #today h2 {
+    #today h2, #summary-title {
       font-weight: 400;
       color: #222;
-    text-shadow: 0 1px 2px rgba(66,133,244,0.07); color: #222; font-weight: 600; letter-spacing: 0.01em;
+      text-shadow: 0 1px 2px rgba(66,133,244,0.07); 
+      font-weight: 600; 
+      letter-spacing: 0.01em;
     }
     input[type="text"] {
       width: 100%;
@@ -131,12 +133,10 @@
       text-align: center;
     }
     .corner-links {
-      position: fixed;
-      top: 1rem;
-      left: 0;
-      width: auto; /* Remove width: 100% */
-      pointer-events: none;
-      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      gap: 1rem;
     }
     .corner-link {
       display: flex;
@@ -150,9 +150,7 @@
       text-decoration: none;
       color: #222;
       box-shadow: 0 2px 8px rgba(66,133,244,0.06);
-      position: fixed;
-      top: 1rem;
-      pointer-events: auto;
+      position: relative;
       transition: background 0.2s;
     }
     .corner-link:hover {
@@ -169,13 +167,86 @@
       border-radius: 0.2rem;
       display: inline-block;
     }
-    .corner-link.about {
-      left: 1rem;
+    /* Mobile sticky buttons */
+    .summary-controls {
+      position: sticky;
+      top: 0;
+      background: #f9f9f9;
+      z-index: 50;
+      padding: 0.5rem 0;
+      margin: 0 -1rem;
+      padding-left: 1rem;
+      padding-right: 1rem;
     }
-    .corner-link.support {
-      right: 1rem;
+    body.dark .summary-controls {
+      background: #0f1419;
+    }
+    .summary-title-wrapper {
+      text-align: center;
+      margin-bottom: 0;
+    }
+    .button-row {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      flex-wrap: nowrap;
+    }
+    @media (min-width: 701px) {
+      .summary-controls {
+        /* Keep sticky positioning on desktop too */
+        padding: 1rem 0;
+        margin: 0;
+      }
+      .summary-title-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        position: relative;
+        width: 100%;
+        padding: 0 1rem;
+        margin-bottom: 0;
+      }
+      .summary-title-wrapper #summary-title {
+        flex: 0 0 auto;
+      }
+      .button-row {
+        position: absolute;
+        gap: 0.5rem;
+        flex-wrap: nowrap;
+      }
+      .button-row.left-buttons {
+        left: 0;
+      }
+      .button-row.right-buttons {
+        right: 0;
+      }
     }
     @media (max-width: 700px) {
+      .summary-title-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .summary-title-wrapper #summary-title {
+        order: -1;
+        width: 100%;
+        font-size: 1.3rem;
+      }
+      .button-container {
+        display: flex;
+        justify-content: center;
+        gap: 0.4rem;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        width: 100%;
+        padding: 0 0.25rem;
+      }
+      .button-row {
+        gap: 0.4rem;
+        flex-wrap: nowrap;
+      }
       .corner-links {
         position: static;
         display: flex;
@@ -191,6 +262,13 @@
       }
       .corner-link:last-child {
         margin-right: 0;
+      }
+      .corner-link .rect-icon {
+        display: none;
+      }
+      .corner-link {
+        padding: 0.5rem 1rem;
+        border-left: 4px solid #4285f4;
       }
       #archive > div {
         flex-direction: column !important;
@@ -247,7 +325,7 @@
   /* Dark mode persistent styles for dynamically injected content */
   body.dark .digest-topic h2 { color: #e6edf3 !important; }
   body.dark .digest-topic p { color: #e6edf3 !important; }
-  body.dark #today h2 { color: #e6edf3 !important; }
+  body.dark #today h2, body.dark #summary-title { color: #e6edf3 !important; }
   body.dark header h1 { color: #e6edf3 !important; }
     body.dark #archive-summaries .archive-summary-expanded,
     body.dark #archive-summaries .archive-summary-collapsed {
@@ -287,88 +365,89 @@
     <p>Stay informed and save time!</p>
   </header>
   <section id="today">
-    <h2 style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; position: relative; width: 100%; padding: 0 1rem;">
-      <!-- Play, Dark Mode, and Share buttons on the left -->
-      <div style="display: flex; align-items: center; gap: 0.5rem; position: absolute; left: 0;">
-        <button id="play-audio" title="Play audio summary"
-          style="
-            background: #e8f0fe;
-            border: none;
-            border-radius: 50%;
-            width: 2rem;
-            height: 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(66,133,244,0.06);
-            transition: background 0.2s;
-          "
-          onmouseover="this.style.background='#d2e3fc'"
-          onmouseout="this.style.background='#e8f0fe'"
-          ontouchstart="this.style.background='#d2e3fc'"
-          ontouchend="this.style.background='#e8f0fe'"
-        >
-          <i class="fa-solid fa-play" style="font-size: 1.2rem; color: #4285f4;"></i>
-        </button>
-        <button id="dark-mode-btn" title="Toggle dark mode"
-          style="
-            background: #e8f0fe;
-            border: none;
-            border-radius: 50%;
-            width: 2rem;
-            height: 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(66,133,244,0.06);
-            transition: background 0.2s;
-          "
-          onmouseover="this.style.background='#d2e3fc'"
-          onmouseout="this.style.background='#e8f0fe'"
-          ontouchstart="this.style.background='#d2e3fc'"
-          ontouchend="this.style.background='#e8f0fe'"
-        >
-          <i id="dark-mode-icon" class="fa-solid fa-moon" style="font-size: 1.2rem; color: #4285f4;"></i>
-        </button>
-        <button id="share-btn" title="Share today's summary"
-          style="
-            background: #e8f0fe;
-            border: none;
-            border-radius: 50%;
-            width: 2rem;
-            height: 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(66,133,244,0.06);
-            transition: background 0.2s;
-          "
-          onmouseover="this.style.background='#d2e3fc'"
-          onmouseout="this.style.background='#e8f0fe'"
-          ontouchstart="this.style.background='#d2e3fc'"
-          ontouchend="this.style.background='#e8f0fe'"
-        >
-          <i class="fa-solid fa-share" style="font-size: 1.2rem; color: #4285f4;"></i>
-        </button>
+    <div class="summary-controls">
+      <div class="summary-title-wrapper">
+        <h2 id="summary-title">Today's Summary</h2>
+        <div class="button-container">
+          <div class="button-row left-buttons">
+            <button id="play-audio" title="Play audio summary"
+              style="
+                background: #e8f0fe;
+                border: none;
+                border-radius: 50%;
+                width: 2rem;
+                height: 2rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(66,133,244,0.06);
+                transition: background 0.2s;
+              "
+              onmouseover="this.style.background='#d2e3fc'"
+              onmouseout="this.style.background='#e8f0fe'"
+              ontouchstart="this.style.background='#d2e3fc'"
+              ontouchend="this.style.background='#e8f0fe'"
+            >
+              <i class="fa-solid fa-play" style="font-size: 1.2rem; color: #4285f4;"></i>
+            </button>
+            <button id="dark-mode-btn" title="Toggle dark mode"
+              style="
+                background: #e8f0fe;
+                border: none;
+                border-radius: 50%;
+                width: 2rem;
+                height: 2rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(66,133,244,0.06);
+                transition: background 0.2s;
+              "
+              onmouseover="this.style.background='#d2e3fc'"
+              onmouseout="this.style.background='#e8f0fe'"
+              ontouchstart="this.style.background='#d2e3fc'"
+              ontouchend="this.style.background='#e8f0fe'"
+            >
+              <i id="dark-mode-icon" class="fa-solid fa-moon" style="font-size: 1.2rem; color: #4285f4;"></i>
+            </button>
+            <button id="share-btn" title="Share today's summary"
+              style="
+                background: #e8f0fe;
+                border: none;
+                border-radius: 50%;
+                width: 2rem;
+                height: 2rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(66,133,244,0.06);
+                transition: background 0.2s;
+              "
+              onmouseover="this.style.background='#d2e3fc'"
+              onmouseout="this.style.background='#e8f0fe'"
+              ontouchstart="this.style.background='#d2e3fc'"
+              ontouchend="this.style.background='#e8f0fe'"
+            >
+              <i class="fa-solid fa-share" style="font-size: 1.2rem; color: #4285f4;"></i>
+            </button>
+          </div>
+          <div class="button-row right-buttons">
+            <button id="back-btn" title="View previous day" style="display: none; background: #e8f0fe; border: none; border-radius: 50%; width: 2rem; height: 2rem; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(66,133,244,0.06); transition: background 0.2s;" onmouseover="this.style.background='#d2e3fc'" onmouseout="this.style.background='#e8f0fe'" ontouchstart="this.style.background='#d2e3fc'" ontouchend="this.style.background='#e8f0fe'">
+              <i class="fa-solid fa-chevron-left" style="font-size: 1.2rem; color: #4285f4;"></i>
+            </button>
+            <button id="forward-btn" title="View next day" style="display: none; background: #e8f0fe; border: none; border-radius: 50%; width: 2rem; height: 2rem; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(66,133,244,0.06); transition: background 0.2s;" onmouseover="this.style.background='#d2e3fc'" onmouseout="this.style.background='#e8f0fe'" ontouchstart="this.style.background='#d2e3fc'" ontouchend="this.style.background='#e8f0fe'">
+              <i class="fa-solid fa-chevron-right" style="font-size: 1.2rem; color: #4285f4;"></i>
+            </button>
+            <button id="today-btn" title="Go back to today's summary" style="display: none; background: #e8f0fe; border: none; border-radius: 0.5rem; padding: 0.4rem 0.8rem; cursor: pointer; box-shadow: 0 2px 8px rgba(66,133,244,0.06); transition: background 0.2s; font-size: 0.9rem; font-weight: 600; color: #4285f4;" onmouseover="this.style.background='#d2e3fc'" onmouseout="this.style.background='#e8f0fe'" ontouchstart="this.style.background='#d2e3fc'" ontouchend="this.style.background='#e8f0fe'">
+              Today
+            </button>
+          </div>
+        </div>
       </div>
-      <!-- Centered title -->
-      <span id="summary-title">Today's Summary</span>
-      <!-- Navigation buttons (Back, Forward, Today) on the right -->
-      <div style="display: flex; align-items: center; gap: 0.5rem; position: absolute; right: 0;">
-        <button id="back-btn" title="View previous day" style="display: none; background: #e8f0fe; border: none; border-radius: 50%; width: 2rem; height: 2rem; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(66,133,244,0.06); transition: background 0.2s;" onmouseover="this.style.background='#d2e3fc'" onmouseout="this.style.background='#e8f0fe'" ontouchstart="this.style.background='#d2e3fc'" ontouchend="this.style.background='#e8f0fe'">
-          <i class="fa-solid fa-chevron-left" style="font-size: 1.2rem; color: #4285f4;"></i>
-        </button>
-        <button id="forward-btn" title="View next day" style="display: none; background: #e8f0fe; border: none; border-radius: 50%; width: 2rem; height: 2rem; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(66,133,244,0.06); transition: background 0.2s;" onmouseover="this.style.background='#d2e3fc'" onmouseout="this.style.background='#e8f0fe'" ontouchstart="this.style.background='#d2e3fc'" ontouchend="this.style.background='#e8f0fe'">
-          <i class="fa-solid fa-chevron-right" style="font-size: 1.2rem; color: #4285f4;"></i>
-        </button>
-        <button id="today-btn" title="Go back to today's summary" style="display: none; background: #e8f0fe; border: none; border-radius: 0.5rem; padding: 0.4rem 0.8rem; cursor: pointer; box-shadow: 0 2px 8px rgba(66,133,244,0.06); transition: background 0.2s; font-size: 0.9rem; font-weight: 600; color: #4285f4;" onmouseover="this.style.background='#d2e3fc'" onmouseout="this.style.background='#e8f0fe'" ontouchstart="this.style.background='#d2e3fc'" ontouchend="this.style.background='#e8f0fe'">
-          Today
-        </button>
-      </div>
-    </h2>
+    </div>
     <div class="card" id="today-summary">
       <!-- Today's summary will be loaded here dynamically -->
     </div>
@@ -413,7 +492,7 @@
       function computeAudioUrl() {
         const date = (typeof currentViewDate === 'string' && currentViewDate) ? currentViewDate : getDisplayDateUTC();
         const bucket = 'news-audio';
-        return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${date}.wav`;
+        return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${date}.mp3`;
       }
 
       function setIconPlaying(playing) {
@@ -546,6 +625,8 @@
       // Ensure section headers are readable
       const todayH2 = document.querySelector('#today h2');
       if (todayH2) todayH2.style.color = '#e6edf3';
+      const summaryTitle = document.getElementById('summary-title');
+      if (summaryTitle) summaryTitle.style.color = '#e6edf3';
         document.querySelectorAll('.digest-topic h2').forEach(h2 => {
           h2.style.color = '#e6edf3';
         });
@@ -633,6 +714,8 @@
       // Revert section header colors
       const todayH2 = document.querySelector('#today h2');
       if (todayH2) todayH2.style.color = '#222';
+      const summaryTitle = document.getElementById('summary-title');
+      if (summaryTitle) summaryTitle.style.color = '#222';
         document.querySelectorAll('.digest-topic h2').forEach(h2 => {
           h2.style.color = '#222';
         });
@@ -711,7 +794,7 @@
 <script>
   // Supabase REST API config
   const SUPABASE_URL = 'https://yahltrcxuvcgwdtsvmwk.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhaGx0cmN4dXZjZ3dkdHN2bXdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNzYzMzcsImV4cCI6MjA3MDg1MjMzN30.k6GIv0kK1p6imlQmA_qE9kpl2mpu4kmZqUAhqQG_7ns';
+  const SUPABASE_KEY = 'sb_publishable_h_TnmS8AogSHOCohx6E3PA_8skGUfwU';
   const SUPABASE_TABLE = 'daily_digests';
 
   // Helper to fetch summaries from Supabase

@@ -1,5 +1,11 @@
 requests>=2.31.0
 ollama>=0.3.0
-# Text-to-speech (Kokoro ONNX) for audio summaries
+# Text-to-speech with native Kokoro (am_michael voice)
+kokoro>=0.9.4
+soundfile>=0.12.0
+# Audio conversion for MP3 compression (requires ffmpeg)
+pydub>=0.25.1
+# Fallback TTS options
 kokoro-onnx>=0.3.0
 onnxruntime>=1.18.0
+pyttsx3>=2.90

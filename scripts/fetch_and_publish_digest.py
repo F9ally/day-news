@@ -15,6 +15,8 @@ from io import BytesIO
 import threading
 import subprocess
 import sys
+import io
+from pydub import AudioSegment
 
 # External news API defaults
 GNEWS_TOP_HEADLINES_URL = "https://gnews.io/api/v4/top-headlines"
@@ -649,20 +651,33 @@ def generate_audio_with_kokoro(text: str, voice: str = "am_michael") -> bytes:
     """
     # 1) Try the user's confirmed working API: kokoro.KPipeline
     try:
+        print("[Audio] Attempting to initialize Kokoro KPipeline...")
         from kokoro import KPipeline  # type: ignore
         pipeline = KPipeline(lang_code='a')
+        print("[Audio] KPipeline initialized successfully")
+        
         # KPipeline yields (ps, go, audio) for chunks; collect all audio to cover full narration
         sr = 24000  # your example saved with 24kHz
         all_samples: List[float] = []
+        chunk_count = 0
+        
+        print(f"[Audio] Generating speech for {len(text)} characters...")
         for _ps, _go, audio in pipeline(text, voice=voice):
             if audio is None:
                 continue
             try:
                 # Extend with chunk samples
+                chunk_len = len(audio) if hasattr(audio, '__len__') else 0
                 all_samples.extend(float(x) for x in audio)
-            except Exception:
-                # If not iterable, skip
+                chunk_count += 1
+                if chunk_count % 10 == 0:
+                    print(f"[Audio] Processed {chunk_count} chunks, {len(all_samples)} samples so far...")
+            except Exception as e_chunk:
+                print(f"[Audio] Warning: Failed to process audio chunk: {e_chunk}")
                 continue
+        
+        print(f"[Audio] Collected {len(all_samples)} samples from {chunk_count} chunks")
+        
         if all_samples:
             import wave, struct
             with BytesIO() as bio:
@@ -688,6 +703,7 @@ def generate_audio_with_kokoro(text: str, voice: str = "am_michael") -> bytes:
         else:
             print("[Audio] KPipeline yielded no audio frames")
     except Exception as e:
+        print(f"[Audio] KPipeline failed: {type(e).__name__}: {e}")
         # Fall back to kokoro_onnx
         pass
 
@@ -695,7 +711,9 @@ def generate_audio_with_kokoro(text: str, voice: str = "am_michael") -> bytes:
     try:
         import tempfile
         from kokoro_onnx import Kokoro  # type: ignore
-        tts = Kokoro()
+        # Note: kokoro-onnx requires local model and voices paths. If not provided,
+        # this will raise a TypeError; we'll catch and continue to the local OS TTS fallback.
+        tts = Kokoro()  # type: ignore[call-arg]
         # Try common method names returning bytes/array
         for meth_name in ("generate", "tts", "synthesize", "create", "speak"):
             meth = getattr(tts, meth_name, None)
@@ -784,8 +802,84 @@ def generate_audio_with_kokoro(text: str, voice: str = "am_michael") -> bytes:
                         return data
             except Exception:
                 continue
-    except Exception:
-        pass
+    except Exception as e:
+        # Either kokoro_onnx isn't available or models are not set up; fall through.
+        print(f"[Audio] kokoro_onnx path skipped: {type(e).__name__}: {e}")
+
+    # 3) Last-resort local fallback: use system TTS via pyttsx3 (Windows: SAPI5)
+    #    This is fully offline and avoids heavyweight ML deps.
+    try:
+        import tempfile
+        import pyttsx3  # type: ignore
+
+        print("[Audio] Falling back to local OS TTS (pyttsx3)...")
+        engine = pyttsx3.init()  # On Windows uses SAPI5
+        
+        # Voice selection: prefer male voices for consistency with am_michael
+        # Look for "David", "Mark", or any voice with "male" in the name
+        try:
+            voices = engine.getProperty('voices')
+            selected_voice = None
+            
+            # First priority: look for David (common Windows male voice)
+            for v in voices:
+                name = (getattr(v, 'name', '') or '').lower()
+                if 'david' in name:
+                    selected_voice = v.id
+                    print(f"[Audio] Selected voice: {getattr(v, 'name', 'David')}")
+                    break
+            
+            # Second priority: look for Mark or other common male names
+            if not selected_voice:
+                for v in voices:
+                    name = (getattr(v, 'name', '') or '').lower()
+                    if any(male_name in name for male_name in ['mark', 'james', 'george', 'male']):
+                        selected_voice = v.id
+                        print(f"[Audio] Selected voice: {getattr(v, 'name', 'Male voice')}")
+                        break
+            
+            # Third priority: if voice parameter matches Kokoro style (am_*), pick first male-sounding voice
+            if not selected_voice and voice and 'am_' in str(voice).lower():
+                for v in voices:
+                    name = (getattr(v, 'name', '') or '').lower()
+                    # Avoid female names
+                    if not any(fem in name for fem in ['zira', 'hazel', 'susan', 'female']):
+                        selected_voice = v.id
+                        print(f"[Audio] Selected voice (male preference): {getattr(v, 'name', 'Unknown')}")
+                        break
+            
+            if selected_voice:
+                engine.setProperty('voice', selected_voice)
+            else:
+                print("[Audio] Using default system voice")
+        except Exception as e:
+            print(f"[Audio] Voice selection failed, using default: {e}")
+
+        # Moderate speech rate for clarity
+        try:
+            rate = int(engine.getProperty('rate') or 200)
+            engine.setProperty('rate', max(140, min(rate, 220)))
+        except Exception:
+            pass
+
+        # Save to temporary WAV then return bytes
+        fd, tmp_path = tempfile.mkstemp(suffix=".wav")
+        os.close(fd)  # Close handle so SAPI can write to it on Windows
+        try:
+            engine.save_to_file(text, tmp_path)
+            engine.runAndWait()
+            with open(tmp_path, "rb") as f:
+                data = f.read()
+        finally:
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
+        if data:
+            print(f"[Audio] Generated {len(data)} bytes of WAV audio (pyttsx3)")
+            return data
+    except Exception as e:
+        print(f"[Audio] pyttsx3 fallback failed: {type(e).__name__}: {e}")
 
     print("[Audio] Kokoro TTS generation failed: No compatible API path succeeded")
     return b""
@@ -1054,11 +1148,27 @@ def main() -> int:
         narration = build_narration_text_from_compiled(compiled)
         audio_bytes = generate_audio_with_kokoro(narration, voice="am_michael")
         if audio_bytes:
+            # Convert WAV to MP3 for smaller file size
+            try:
+                print(f"[Audio] Converting WAV ({len(audio_bytes)} bytes) to MP3...")
+                wav_io = io.BytesIO(audio_bytes)
+                audio_segment = AudioSegment.from_wav(wav_io)
+                mp3_io = io.BytesIO()
+                audio_segment.export(mp3_io, format="mp3", bitrate="128k")
+                audio_bytes = mp3_io.getvalue()
+                file_ext = "mp3"
+                content_type = "audio/mpeg"
+                print(f"[Audio] Converted to MP3 ({len(audio_bytes)} bytes, ~{len(audio_bytes)/(1024*1024):.1f}MB)")
+            except Exception as conv_err:
+                print(f"[Audio] MP3 conversion failed ({conv_err}), using WAV fallback")
+                file_ext = "wav"
+                content_type = "audio/wav"
+            
             bucket = "news-audio"
             ensure_supabase_bucket(cfg["SUPABASE_URL"], cfg["SUPABASE_SERVICE_ROLE_KEY"], bucket)
-            obj_path = f"{date_iso}.wav"
+            obj_path = f"{date_iso}.{file_ext}"
             up_ok, up_msg = upload_audio_to_supabase(
-                cfg["SUPABASE_URL"], cfg["SUPABASE_SERVICE_ROLE_KEY"], bucket, obj_path, audio_bytes, "audio/wav"
+                cfg["SUPABASE_URL"], cfg["SUPABASE_SERVICE_ROLE_KEY"], bucket, obj_path, audio_bytes, content_type
             )
             print(up_msg)
             if up_ok:
