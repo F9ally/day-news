@@ -1,13 +1,13 @@
 # day-news
 
-Simple static site plus an automation script to fetch news, summarize with local Mistral 7B (via Ollama), and publish a daily digest to Supabase.
+Simple static site plus an automation script to fetch news, summarize with local Gemma3:4b (via Ollama), and publish a daily digest to Supabase.
 
 ## Automation script: fetch, summarize, and publish digest
 
 This workspace includes a Python script that:
 
 - Fetches 1 recent news article per topic (9 topics)
-- Summarizes each using local Ollama Mistral (7B) if available
+- Summarizes each using local Ollama Gemma3:4b if available
 - Compiles a single numbered digest
 - Inserts the digest into a Supabase table (`daily_digests` by default)
 
@@ -27,16 +27,3 @@ create table if not exists public.daily_digests (
   items jsonb
 );
 ```
-
-### Run locally
-
-1) Ensure Ollama is installed and `mistral` model is available:
-	- `ollama pull mistral` (or set `OLLAMA_MODEL` in `ven.env`)
-
-2) Install Python deps:
-	- `pip install -r requirements.txt`
-
-3) Execute the script:
-	- `python scripts/fetch_and_publish_digest.py`
-
-The script saves a local copy under `out/` even if Supabase insert fails.
