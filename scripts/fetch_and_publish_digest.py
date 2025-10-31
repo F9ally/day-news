@@ -17,12 +17,27 @@ import subprocess
 import sys
 import io
 from pydub import AudioSegment
+import warnings
 
 # External news API defaults
 GNEWS_TOP_HEADLINES_URL = "https://gnews.io/api/v4/top-headlines"
 DEFAULT_NEWS_LANG = "en"
 DEFAULT_NEWS_COUNTRY = "us"
 DEFAULT_NEWS_MAX = 10
+
+# Suppress specific third-party warnings that are expected/harmless
+# 1) Torch RNN dropout warning when num_layers=1 (emitted by upstream TTS stack)
+warnings.filterwarnings(
+    "ignore",
+    message="dropout option adds dropout after all but last recurrent layer",
+    category=UserWarning,
+)
+# 2) weight_norm deprecation warning from torch utils (emitted by upstream TTS stack)
+warnings.filterwarnings(
+    "ignore",
+    message="torch.nn.utils.weight_norm is deprecated",
+    category=FutureWarning,
+)
 
 
 # --- Config helpers ---------------------------------------------------------
@@ -293,58 +308,43 @@ Headline: [Your complete, engaging headline here]
 Summary: [Your 3-5 sentence factual summary here]
 """.strip()
 
+    host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
+    endpoint = f"{host}/api/chat"
+    payload = {
+        "model": model or "gemma3:4b",
+        "messages": [
+            {"role": "system", "content": "You are a concise news editor."},
+            {"role": "user", "content": prompt},
+        ],
+        "options": {"temperature": 0.1, "num_predict": 256},
+        "stream": False,
+    }
+
     for attempt in range(1, 4):
         print(f"[Ollama] Summarizing (attempt {attempt}) for: {title}")
-        import subprocess
         try:
-            # Use the CLI: ollama run gemma:2b "<prompt>"
-            cmd = ["ollama", "run", model or "gemma:2b", prompt]
-            result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", timeout=60)
-            # If encoding fails, try decoding manually
-            output = result.stdout
-            if not output:
+            resp = requests.post(endpoint, json=payload, timeout=90)
+            if resp.status_code != 200:
+                print(f"[Ollama] HTTP {resp.status_code} for {title}: {resp.text[:200]}")
+            else:
                 try:
-                    output = result.stdout.decode("utf-8", errors="replace") if hasattr(result.stdout, 'decode') else str(result.stdout)
-                except Exception as e_dec:
-                    print(f"[Ollama] CLI decode error: {repr(e_dec)}")
-                    output = str(result.stdout)
-            if result.returncode == 0 and output.strip():
-                print(f"[Ollama] Success via CLI for: {title}")
-                return output.strip()
-            else:
-                err = result.stderr
-                if not err:
-                    try:
-                        err = result.stderr.decode("utf-8", errors="replace") if hasattr(result.stderr, 'decode') else str(result.stderr)
-                    except Exception as e_dec:
-                        print(f"[Ollama] CLI stderr decode error: {repr(e_dec)}")
-                        err = str(result.stderr)
-                print(f"[Ollama] CLI failed: {err.strip()}")
-        except Exception as e_cli:
-            print(f"[Ollama] CLI call failed with error: {repr(e_cli)}")
+                    data = resp.json()
+                except ValueError as e_json:
+                    print(f"[Ollama] JSON decode error: {repr(e_json)}")
+                    data = None
+                if data:
+                    message = data.get("message", {}).get("content") if isinstance(data, dict) else None
+                    if message:
+                        print(f"[Ollama] Success via HTTP API for: {title}")
+                        return message.strip()
+                    else:
+                        print(f"[Ollama] API returned no message content for: {title}")
+        except requests.RequestException as e_http:
+            print(f"[Ollama] HTTP request failed on attempt {attempt}: {repr(e_http)}")
+        time.sleep(1)
 
-        # Fallback to Python client chat() if CLI fails
-        try:
-            import ollama  # type: ignore
-            resp = ollama.chat(
-                model=model or "gemma:2b",
-                messages=[
-                    {"role": "system", "content": "You are a concise news editor."},
-                    {"role": "user", "content": prompt},
-                ],
-                options={"temperature": 0.1, "num_predict": 256},
-            )
-            out = resp.get("message", {}).get("content") if isinstance(resp, dict) else None
-            if out:
-                print(f"[Ollama] Success via chat() for: {title}")
-                return out.strip()
-            else:
-                print(f"[Ollama] chat() returned no content for: {title}")
-        except Exception as e_chat:
-            print(f"[Ollama] chat() failed with error: {repr(e_chat)}")
-        print(f"[Ollama] Tip: Ensure the Ollama server is running (e.g., start the daemon) and the model is available: '{model or 'gemma:2b'}'.")
     print(f"[Ollama] All attempts failed for: {title}")
-    return f"Headline: {title}\nSummary:\n• [ERROR: Could not summarize with Gemma 2B after 3 attempts]"
+    return f"Headline: {title}\nSummary:\n• [ERROR: Could not summarize with {model or 'gemma3:4b'} after 3 attempts]"
 
 
 # --- Formatting -------------------------------------------------------------
@@ -653,7 +653,8 @@ def generate_audio_with_kokoro(text: str, voice: str = "am_michael") -> bytes:
     try:
         print("[Audio] Attempting to initialize Kokoro KPipeline...")
         from kokoro import KPipeline  # type: ignore
-        pipeline = KPipeline(lang_code='a')
+        # Pass explicit repo_id to avoid defaulting warning from upstream
+        pipeline = KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M')
         print("[Audio] KPipeline initialized successfully")
         
         # KPipeline yields (ps, go, audio) for chunks; collect all audio to cover full narration
@@ -903,6 +904,20 @@ def ensure_supabase_bucket(base_url: str, service_key: str, bucket: str) -> None
         elif r.status_code == 409:
             # Bucket already exists
             pass
+        elif r.status_code == 400:
+            # Some Supabase setups return 400 with a JSON body indicating a duplicate (statusCode 409)
+            try:
+                body = r.json()
+            except Exception:
+                body = None
+            msg = (body or {}).get("message", "") if isinstance(body, dict) else r.text
+            if (isinstance(body, dict) and str((body or {}).get("statusCode")) == "409") or (
+                isinstance(msg, str) and ("Duplicate" in msg or "already exists" in msg)
+            ):
+                # Treat as already-existing bucket
+                pass
+            else:
+                print(f"[Storage] Bucket create status {r.status_code}: {r.text[:200]}")
         else:
             print(f"[Storage] Bucket create status {r.status_code}: {r.text[:200]}")
     except requests.RequestException as e:
@@ -932,60 +947,33 @@ def upload_audio_to_supabase(base_url: str, service_key: str, bucket: str, path:
 # --- Ollama bootstrap -------------------------------------------------------
 
 def _ollama_http_ok() -> bool:
+    host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
     try:
-        r = requests.get("http://127.0.0.1:11434/api/tags", timeout=2)
+        r = requests.get(f"{host}/api/tags", timeout=2)
         return r.status_code == 200
     except Exception:
         return False
 
 
 def ensure_ollama_running_and_model(model: str, wait_seconds: int = 60, pull_timeout: int = 600) -> None:
-    """Ensure the Ollama server is running and the model is available.
-
-    - If the server isn't running, start it in the background and wait up to wait_seconds.
-    - Ensure the requested model exists; if not, attempt to pull it (up to pull_timeout seconds).
+    """Check if Ollama HTTP API is accessible and warn if not.
+    
+    In Docker with network_mode: host, we rely on the host's Ollama service.
+    We don't try to start Ollama or pull models - just verify connectivity.
     """
-    model = model or "gemma3:4b"
-    # Quick path: if HTTP responds, assume it's running
-    if not _ollama_http_ok():
-        print("[Ollama] Server not detected; starting daemon...")
-        try:
-            creationflags = 0
-            if os.name == "nt":
-                creationflags = getattr(subprocess, "DETACHED_PROCESS", 0x00000008) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
-            subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL, creationflags=creationflags)
-        except FileNotFoundError:
-            print("[Ollama] 'ollama' CLI not found in PATH. Skipping server start.")
-            return
-        except Exception as e:
-            print(f"[Ollama] Failed to start server: {e}")
-            return
-        # Wait for readiness
-        start_wait = time.time()
-        while time.time() - start_wait < wait_seconds:
-            if _ollama_http_ok():
-                print("[Ollama] Server is up.")
-                break
-            time.sleep(1.5)
-        else:
-            print("[Ollama] Server did not become ready in time; continuing anyway.")
+    import urllib.request
+    
+    host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
+    print(f"[Ollama] Checking if Ollama API is accessible at {host}...")
 
-    # Ensure model exists
     try:
-        res = subprocess.run(["ollama", "show", model], capture_output=True, text=True, timeout=20)
-        if res.returncode != 0:
-            print(f"[Ollama] Model '{model}' not found locally; pulling...")
-            pull = subprocess.run(["ollama", "pull", model], text=True, timeout=pull_timeout)
-            if pull.returncode == 0:
-                print(f"[Ollama] Pulled model '{model}'.")
-            else:
-                print(f"[Ollama] Failed to pull model '{model}' (code {pull.returncode}).")
-    except FileNotFoundError:
-        print("[Ollama] 'ollama' CLI not found; cannot verify or pull model.")
-    except subprocess.TimeoutExpired:
-        print("[Ollama] Model check/pull timed out.")
+        urllib.request.urlopen(f"{host}/api/tags", timeout=5)
+        print(f"[Ollama] ✓ API is accessible. Model '{model}' should be available.")
     except Exception as e:
-        print(f"[Ollama] Error ensuring model: {e}")
+        print(f"[Ollama] ✗ Could not reach Ollama API: {repr(e)}")
+        print(f"[Ollama] Make sure Ollama is running on the host with: ollama serve")
+        print(f"[Ollama] And that model '{model}' is pulled with: ollama pull {model}")
+        print(f"[Ollama] Continuing anyway - summaries will fail if Ollama is not available.")
 
 
 # --- Timeout watchdog and alert --------------------------------------------
@@ -1047,10 +1035,61 @@ def start_timeout_watchdog(seconds: int, cfg: Dict[str, Any]):
     return t
 
 
+# --- Ollama Initialization --------------------------------------------------
+
+def ensure_ollama_ready(model: str, max_retries: int = 30, timeout_secs: int = 3) -> bool:
+    """
+    Ensure Ollama is running and reachable. If not, try to start it. Exit if not available.
+    """
+    import time
+    import urllib.request
+    import subprocess
+    import sys
+    host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
+    print(f"[Ollama] Checking if Ollama API is accessible at {host}...")
+
+    def http_ok():
+        try:
+            urllib.request.urlopen(f"{host}/api/tags", timeout=5)
+            return True
+        except Exception:
+            return False
+
+    # Try to connect first
+    if http_ok():
+        print(f"[Ollama] API is accessible. Model '{model}' should be available.")
+        return True
+
+    # Try to start Ollama if not running
+    print("[Ollama] Ollama not running. Attempting to start ollama serve...")
+    try:
+        subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
+    except Exception as e:
+        print(f"[Ollama] Failed to start Ollama: {e}")
+        sys.exit(1)
+
+    # Wait for Ollama to become available
+    for attempt in range(1, max_retries + 1):
+        if http_ok():
+            print(f"[Ollama] API is accessible (after starting) (attempt {attempt}). Model '{model}' should be available.")
+            return True
+        if attempt == 1 or attempt % 10 == 0:
+            print(f"[Ollama] Waiting for Ollama to start (attempt {attempt})...")
+        time.sleep(timeout_secs)
+
+    print(f"[Ollama] ERROR: Could not reach Ollama API after {max_retries} attempts. Exiting.")
+    sys.exit(1)
+
+
 # --- Main -------------------------------------------------------------------
 
 def main() -> int:
     cfg = load_config()
+    
+    # Ensure Ollama is ready before starting the digest
+    ollama_model = cfg.get("OLLAMA_MODEL") or "gemma3:4b"
+    ensure_ollama_ready(ollama_model, max_retries=30, timeout_secs=2)
+    
     # Start a 20-minute watchdog to abort and email if the script overruns.
     watchdog = start_timeout_watchdog(20 * 60, cfg)
     def _mask(val: Optional[str]) -> str:
@@ -1103,7 +1142,7 @@ def main() -> int:
 
     # Ensure Ollama server and model are ready before summarization
     try:
-        ensure_ollama_running_and_model(cfg.get("OLLAMA_MODEL", "gemma3:4b") or "gemma3:4b")
+        ensure_ollama_running_and_model(ollama_model)
     except Exception as e:
         print(f"[Ollama] Bootstrap error (non-fatal): {e}")
 
@@ -1116,7 +1155,7 @@ def main() -> int:
         if raw_topic.lower() == "us":
             topic_title = "US"
         summary = summarize_with_ollama(
-            cfg.get("OLLAMA_MODEL", "gemma:2b"),
+            ollama_model,
             topic_title,
             item.get("title", "Untitled"),
             item.get("content", ""),
@@ -1170,6 +1209,14 @@ def main() -> int:
             up_ok, up_msg = upload_audio_to_supabase(
                 cfg["SUPABASE_URL"], cfg["SUPABASE_SERVICE_ROLE_KEY"], bucket, obj_path, audio_bytes, content_type
             )
+            if not up_ok:
+                # Handle potential free-tier throttling by pausing then retrying once
+                print(up_msg)
+                print("[Audio] Upload failed; waiting 30 seconds before one retry (possible free-tier pause)...")
+                time.sleep(30)
+                up_ok, up_msg = upload_audio_to_supabase(
+                    cfg["SUPABASE_URL"], cfg["SUPABASE_SERVICE_ROLE_KEY"], bucket, obj_path, audio_bytes, content_type
+                )
             print(up_msg)
             if up_ok:
                 public_url = f"{cfg['SUPABASE_URL']}/storage/v1/object/public/{bucket}/{obj_path}"

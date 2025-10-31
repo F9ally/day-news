@@ -89,7 +89,7 @@
     }
     header {
       text-align: center;
-      padding: 1.5rem 0;
+      padding: 1rem 0;
     }
     header h1 {
       font-size: 2.5rem;
@@ -113,7 +113,7 @@
       border-radius: 0.5rem;
     }
     section {
-      margin: 2rem 0;
+      margin: 1rem 0;
     }
     .card {
       background: #fff;
@@ -345,6 +345,29 @@
   body.dark .digest-topic h3.digest-headline { color: #e6edf3; }
   .digest-topic h2 a, .digest-topic h3 a { color: inherit; text-decoration: none; }
   .digest-topic h2 a:hover, .digest-topic h3 a:hover { text-decoration: underline; }
+
+  /* Audio unavailable popup */
+  .popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 1000; }
+  .popup { background: #fff; color: #222; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); padding: 1rem 1.25rem; max-width: 420px; width: calc(100% - 2rem); }
+  .popup h3 { margin-bottom: 0.4rem; font-size: 1.1rem; }
+  .popup p { margin-bottom: 0.9rem; }
+  .popup .actions { display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap; }
+  .popup .btn { border: none; border-radius: 0.5rem; padding: 0.6rem 0.9rem; cursor: pointer; font-weight: 600; min-width: 110px; transition: background 0.15s ease, color 0.15s ease; }
+  .popup .btn:focus-visible { outline: 2px solid #1a73e8; outline-offset: 2px; }
+  .popup .btn.primary { background: #e8f0fe; color: #1a73e8; box-shadow: 0 2px 8px rgba(66,133,244,0.12); }
+  .popup .btn.primary:hover { background: #d2e3fc; }
+  .popup .btn.ghost { background: transparent; color: #444; }
+  .popup .btn.ghost:hover { background: #f3f4f6; }
+  body.dark .popup { background: #161b22; color: #e6edf3; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  body.dark .popup .btn.primary { background: #1f2a37; color: #8ab4f8; box-shadow: 0 2px 8px rgba(0,0,0,0.40); }
+  body.dark .popup .btn.primary:hover { background: #263244; }
+  body.dark .popup .btn.ghost { color: #c5ced8; }
+  body.dark .popup .btn.ghost:hover { background: #1b2330; }
+  body.dark .popup .btn:focus-visible { outline-color: #8ab4f8; }
+  @media (max-width: 700px) {
+    .popup .actions { flex-direction: column; align-items: stretch; }
+    .popup .btn { width: 100%; min-width: 0; }
+  }
   </style>
 </head>
 <body>
@@ -412,6 +435,71 @@
             >
               <i id="dark-mode-icon" class="fa-solid fa-moon" style="font-size: 1.2rem; color: #4285f4;"></i>
             </button>
+            <button id="font-size-btn" title="Adjust font size"
+              style="
+                background: #e8f0fe;
+                border: none;
+                border-radius: 50%;
+                width: 2rem;
+                height: 2rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(66,133,244,0.06);
+                transition: background 0.2s;
+              "
+              onmouseover="this.style.background='#d2e3fc'"
+              onmouseout="this.style.background='#e8f0fe'"
+              ontouchstart="this.style.background='#d2e3fc'"
+              ontouchend="this.style.background='#e8f0fe'"
+            >
+              <i class="fa-solid fa-text-height" style="font-size: 1.2rem; color: #4285f4;"></i>
+            </button>
+            <div id="font-size-controls" style="display: none; gap: 0.3rem;">
+              <button id="font-increase-btn" title="Increase font size"
+                style="
+                  background: #e8f0fe;
+                  border: none;
+                  border-radius: 50%;
+                  width: 2rem;
+                  height: 2rem;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  cursor: pointer;
+                  box-shadow: 0 2px 8px rgba(66,133,244,0.06);
+                  transition: background 0.2s;
+                "
+                onmouseover="this.style.background='#d2e3fc'"
+                onmouseout="this.style.background='#e8f0fe'"
+                ontouchstart="this.style.background='#d2e3fc'"
+                ontouchend="this.style.background='#e8f0fe'"
+              >
+                <i class="fa-solid fa-plus" style="font-size: 1rem; color: #4285f4;"></i>
+              </button>
+              <button id="font-decrease-btn" title="Decrease font size"
+                style="
+                  background: #e8f0fe;
+                  border: none;
+                  border-radius: 50%;
+                  width: 2rem;
+                  height: 2rem;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  cursor: pointer;
+                  box-shadow: 0 2px 8px rgba(66,133,244,0.06);
+                  transition: background 0.2s;
+                "
+                onmouseover="this.style.background='#d2e3fc'"
+                onmouseout="this.style.background='#e8f0fe'"
+                ontouchstart="this.style.background='#d2e3fc'"
+                ontouchend="this.style.background='#e8f0fe'"
+              >
+                <i class="fa-solid fa-minus" style="font-size: 1rem; color: #4285f4;"></i>
+              </button>
+            </div>
             <button id="share-btn" title="Share today's summary"
               style="
                 background: #e8f0fe;
@@ -452,6 +540,16 @@
       <!-- Today's summary will be loaded here dynamically -->
     </div>
   </section>
+  <!-- Audio unavailable popup -->
+  <div id="audio-unavailable" class="popup-overlay" role="dialog" aria-modal="true" aria-labelledby="audio-unavailable-title" aria-hidden="true">
+    <div class="popup">
+      <h3 id="audio-unavailable-title">Audio not available yet</h3>
+      <div class="actions">
+        <button type="button" class="btn ghost" data-action="close">Dismiss</button>
+        <button type="button" class="btn primary" data-action="retry">Try again</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Ad Section removed for Google AdSense integration -->
 
@@ -489,6 +587,34 @@
       let currentSrc = '';
       let isLoading = false;
 
+      // Popup helpers
+      const overlay = document.getElementById('audio-unavailable');
+      function showAudioPopup() {
+        overlay.style.display = 'flex';
+        overlay.setAttribute('aria-hidden', 'false');
+        // Focus the primary action for accessibility
+        const retryBtn = overlay.querySelector('[data-action="retry"]');
+        if (retryBtn) retryBtn.focus();
+      }
+      function hideAudioPopup() {
+        overlay.style.display = 'none';
+        overlay.setAttribute('aria-hidden', 'true');
+      }
+      // Wire popup buttons
+      overlay?.addEventListener('click', (e) => {
+        if (e.target === overlay) hideAudioPopup();
+      });
+  // (removed stray line)
+      
+      const closeBtn = overlay?.querySelector('[data-action="close"]');
+      const retryBtn = overlay?.querySelector('[data-action="retry"]');
+      closeBtn?.addEventListener('click', () => hideAudioPopup());
+      retryBtn?.addEventListener('click', async () => {
+        hideAudioPopup();
+        // Re-attempt playback
+        try { await ensureSrcAndPlay(); } catch (_) { /* noop */ }
+      });
+
       function computeAudioUrl() {
         const date = (typeof currentViewDate === 'string' && currentViewDate) ? currentViewDate : getDisplayDateUTC();
         const bucket = 'news-audio';
@@ -524,10 +650,10 @@
         try {
           await audio.play();
         } catch (e) {
-          // If failed (likely 404), revert icon and notify
+          // If failed (likely 404), revert icon and show nicer popup
           setIconPlaying(false);
           console.warn('Audio play failed (maybe not generated yet):', e);
-          alert('Audio summary is not available for this date yet.');
+          showAudioPopup();
         } finally {
           isLoading = false;
         }
@@ -660,11 +786,14 @@
       // Primary action buttons (play, dark-mode, share, back, forward, today)
       const playBtn = document.getElementById('play-audio');
       const darkBtn = document.getElementById('dark-mode-btn');
+      const fontSizeBtn = document.getElementById('font-size-btn');
       const shareBtn = document.getElementById('share-btn');
       const backBtn = document.getElementById('back-btn');
       const forwardBtn = document.getElementById('forward-btn');
       const todayBtn = document.getElementById('today-btn');
-      [playBtn, darkBtn, shareBtn, backBtn, forwardBtn].forEach(btn => {
+      const fontIncreaseBtn = document.getElementById('font-increase-btn');
+      const fontDecreaseBtn = document.getElementById('font-decrease-btn');
+      [playBtn, darkBtn, fontSizeBtn, shareBtn, backBtn, forwardBtn, fontIncreaseBtn, fontDecreaseBtn].forEach(btn => {
         if (!btn) return;
         btn.style.background = '#1f2a37';
         btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.40)';
@@ -749,11 +878,14 @@
       // Reset buttons to light colors
   const playBtn = document.getElementById('play-audio');
   const darkBtn = document.getElementById('dark-mode-btn');
+  const fontSizeBtn = document.getElementById('font-size-btn');
   const shareBtnEl = document.getElementById('share-btn');
   const backBtn = document.getElementById('back-btn');
   const forwardBtn = document.getElementById('forward-btn');
   const todayBtn = document.getElementById('today-btn');
-  [playBtn, darkBtn, shareBtnEl, backBtn, forwardBtn].forEach(btn => {
+  const fontIncreaseBtn = document.getElementById('font-increase-btn');
+  const fontDecreaseBtn = document.getElementById('font-decrease-btn');
+  [playBtn, darkBtn, fontSizeBtn, shareBtnEl, backBtn, forwardBtn, fontIncreaseBtn, fontDecreaseBtn].forEach(btn => {
         if (!btn) return;
         btn.style.background = '#e8f0fe';
         btn.style.boxShadow = '0 2px 8px rgba(66,133,244,0.06)';
@@ -790,6 +922,57 @@
       } catch (e) { /* ignore storage errors */ }
     });
   // Note: Dark mode sync to about.html relies on localStorage + storage events.
+
+    // Font size adjustment logic
+    const fontSizeBtn = document.getElementById('font-size-btn');
+    const fontSizeControls = document.getElementById('font-size-controls');
+    const fontIncreaseBtn = document.getElementById('font-increase-btn');
+    const fontDecreaseBtn = document.getElementById('font-decrease-btn');
+    let fontSizeLevel = 0; // -2 to +2 range
+    let fontSizeControlsVisible = false;
+
+    // Load saved font size
+    try {
+      const saved = localStorage.getItem('fontSizeLevel');
+      if (saved !== null) {
+        fontSizeLevel = parseInt(saved, 10);
+        applyFontSize();
+      }
+    } catch (e) { /* ignore */ }
+
+    fontSizeBtn.addEventListener('click', () => {
+      fontSizeControlsVisible = !fontSizeControlsVisible;
+      fontSizeControls.style.display = fontSizeControlsVisible ? 'flex' : 'none';
+    });
+
+    fontIncreaseBtn.addEventListener('click', () => {
+      if (fontSizeLevel < 2) {
+        fontSizeLevel++;
+        applyFontSize();
+        saveFontSize();
+      }
+    });
+
+    fontDecreaseBtn.addEventListener('click', () => {
+      if (fontSizeLevel > -2) {
+        fontSizeLevel--;
+        applyFontSize();
+        saveFontSize();
+      }
+    });
+
+    function applyFontSize() {
+      const baseSize = 16; // Base font size in pixels
+      const adjustment = fontSizeLevel * 2; // Each level = 2px
+      const newSize = baseSize + adjustment;
+      document.body.style.fontSize = newSize + 'px';
+    }
+
+    function saveFontSize() {
+      try {
+        localStorage.setItem('fontSizeLevel', fontSizeLevel.toString());
+      } catch (e) { /* ignore */ }
+    }
   </script>
 <script>
   // Supabase REST API config
