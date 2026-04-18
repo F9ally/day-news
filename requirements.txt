@@ -1,5 +1,8 @@
 requests>=2.31.0
 ollama>=0.3.0
+# CPU-only PyTorch (without CUDA)
+torch>=2.0.0
+--extra-index-url https://download.pytorch.org/whl/cpu
 # Text-to-speech with native Kokoro (am_michael voice)
 kokoro>=0.9.4
 soundfile>=0.12.0

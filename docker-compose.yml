@@ -1,0 +1,14 @@
+services:
+  day-news:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: day-news-digest
+    env_file:
+      - ven.env
+    environment:
+      - OLLAMA_HOST=http://127.0.0.1:11434
+    volumes:
+      - ./out:/app/out
+    network_mode: host
+    restart: "no"
