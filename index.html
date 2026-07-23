@@ -191,6 +191,27 @@
       gap: 0.5rem;
       flex-wrap: nowrap;
     }
+    .settings-footer {
+      display: flex;
+      justify-content: center;
+      margin-top: 0.75rem;
+    }
+    .settings-privacy-link {
+      color: #4285f4;
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .settings-privacy-link:hover {
+      color: #2f6ed8;
+      text-decoration: underline;
+    }
+    body.dark .settings-privacy-link {
+      color: #8ab4f8;
+    }
+    body.dark .settings-privacy-link:hover {
+      color: #9cc1ff;
+    }
     @media (min-width: 701px) {
       .summary-controls {
         /* Keep sticky positioning on desktop too */
@@ -385,7 +406,8 @@
 
   <header>
     <h1>Day2Day News</h1>
-    <p>Stay informed and save time!</p>
+    <p>Stay informed and save time! Day2Day News is moving to an app (coming soon) and so the site will soon be taken down.
+    </p>
   </header>
   <section id="today">
     <div class="summary-controls">
@@ -534,6 +556,16 @@
             </button>
           </div>
         </div>
+      </div>
+      <div class="settings-footer">
+        <a
+          class="settings-privacy-link"
+          href="https://astronautapps.pages.dev/privacy_policy_day2daynews"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Privacy Policy →
+        </a>
       </div>
     </div>
     <div class="card" id="today-summary">
