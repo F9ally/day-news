@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSettings } from '../context/SettingsContext';
 import { useDigest } from '../hooks/useDigest';
+import { useMonthlySummary } from '../hooks/useMonthlySummary';
 import { useAudio } from '../hooks/useAudio';
 import { ControlBar } from '../components/ControlBar';
 import { DigestContent } from '../components/DigestContent';
@@ -18,12 +19,20 @@ import { AudioUnavailableModal } from '../components/AudioUnavailableModal';
 import {
   isBeforeSixTwentyFiveUTC,
   formatDateForDisplay,
+  formatMonthForDisplay,
 } from '../utils/dateUtils';
 
 export function HomeScreen() {
   const { colors, toggleTheme, increaseFontSize, decreaseFontSize, fontSize } =
     useSettings();
   const insets = useSafeAreaInsets();
+  const daily = useDigest();
+  const monthly = useMonthlySummary();
+  const [viewMode, setViewMode] = React.useState<'daily' | 'monthly'>('daily');
+
+  const audioIdentifier = viewMode === 'monthly' ? monthly.currentMonth ?? '' : daily.currentDate;
+  const audio = useAudio(audioIdentifier, viewMode);
+
   const {
     currentDate,
     items,
@@ -35,17 +44,40 @@ export function HomeScreen() {
     goToday,
     canGoBack,
     canGoForward,
-    refresh,
-  } = useDigest();
+  } = viewMode === 'daily'
+    ? daily
+    : {
+        currentDate: monthly.currentMonth ?? '',
+        items: monthly.items,
+        loading: monthly.loading,
+        error: monthly.error,
+        isToday: false,
+        goBack: monthly.goBack,
+        goForward: monthly.goForward,
+        goToday: () => {},
+        canGoBack: monthly.canGoBack,
+        canGoForward: monthly.canGoForward,
+      };
 
-  const audio = useAudio(currentDate);
+  const refresh = viewMode === 'daily' ? daily.refresh : monthly.refresh;
+
+  // Label shown inside the digest card (formatted month for monthly mode)
+  const cardLabel =
+    viewMode === 'monthly' && monthly.currentMonth
+      ? formatMonthForDisplay(monthly.currentMonth)
+      : currentDate;
 
   // Build the title matching website logic
-  const title = isToday
-    ? isBeforeSixTwentyFiveUTC()
-      ? "Yesterday's Summary"
-      : "Today's Summary"
-    : formatDateForDisplay(currentDate);
+  const title =
+    viewMode === 'monthly'
+      ? monthly.currentMonth
+        ? `${formatMonthForDisplay(monthly.currentMonth)} Monthly Summary`
+        : 'Monthly Summary'
+      : isToday
+      ? isBeforeSixTwentyFiveUTC()
+        ? "Yesterday's Summary"
+        : "Today's Summary"
+      : formatDateForDisplay(currentDate);
 
   // Stop audio on navigation
   const handleGoBack = useCallback(() => {
@@ -63,23 +95,33 @@ export function HomeScreen() {
     goToday();
   }, [audio, goToday]);
 
+  const handleOpenMonthly = useCallback(() => {
+    audio.stop();
+    setViewMode('monthly');
+  }, [audio]);
+
+  const handleBackToDaily = useCallback(() => {
+    audio.stop();
+    setViewMode('daily');
+  }, [audio]);
+
   // Share handler
   const handleShare = useCallback(async () => {
     const summaryText = items
       .map((item) => `${item.emoji} ${item.topic}: ${item.headline}\n${item.summary}`)
       .join('\n\n');
 
-    const shareText = `${currentDate}\n\n${summaryText}\n\nhttps://day2day.news`;
+    const shareText = `${title}\n\n${summaryText}\n\nhttps://day2day.news`;
 
     try {
       await Share.share({
-        title: `Day2Day News: ${currentDate}`,
+        title: `Day2Day News: ${title}`,
         message: shareText,
       });
     } catch {
       // User cancelled share
     }
-  }, [items, currentDate]);
+  }, [items, title]);
 
   // Refreshing state
   const [refreshing, setRefreshing] = React.useState(false);
@@ -118,6 +160,9 @@ export function HomeScreen() {
           canGoForward={canGoForward}
           isToday={isToday}
           title={title}
+          mode={viewMode}
+          onOpenMonthly={handleOpenMonthly}
+          onBackToDaily={handleBackToDaily}
         />
       </View>
 
@@ -145,15 +190,17 @@ export function HomeScreen() {
             </Text>
           </View>
         ) : (
-          <DigestContent items={items} dateStr={currentDate} />
+          <DigestContent items={items} dateStr={cardLabel} />
         )}
 
         {/* Footer */}
-        <Text style={[styles.footer, { color: colors.textSecondary }]}>
-          © 2025 Day2Day News Summaries. An Astronaut Website.{'\n'}
-          AI can make mistakes. All rights reserved.{'\n'}
-          Day2Day News does not endorse any ideas, political parties or products.
-        </Text>
+        <View style={styles.footerContainer}>
+          <Text style={[styles.footer, { color: colors.textSecondary }]}>
+            © 2025 Day2Day News Summaries. An Astronaut Website.{'\n'}
+            AI can make mistakes. All rights reserved.{'\n'}
+            Day2Day News does not endorse any ideas, political parties or products.
+          </Text>
+        </View>
       </ScrollView>
 
       {/* Audio unavailable modal */}
@@ -208,5 +255,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 20,
     paddingBottom: 8,
+  },
+  footerContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
   },
 });

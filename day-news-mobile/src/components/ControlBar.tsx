@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useSettings } from '../context/SettingsContext';
@@ -24,6 +25,10 @@ interface ControlBarProps {
   canGoForward: boolean;
   isToday: boolean;
   title: string;
+  /** 'daily' shows the calendar icon to open Monthly Summaries; 'monthly' shows a back button to daily. */
+  mode?: 'daily' | 'monthly';
+  onOpenMonthly?: () => void;
+  onBackToDaily?: () => void;
 }
 
 export function ControlBar({
@@ -41,12 +46,26 @@ export function ControlBar({
   canGoForward,
   isToday,
   title,
+  mode = 'daily',
+  onOpenMonthly,
+  onBackToDaily,
 }: ControlBarProps) {
   const { colors, themeMode } = useSettings();
   const isDark = themeMode === 'dark';
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {mode === 'daily' && onOpenMonthly ? (
+        <TouchableOpacity
+          style={[styles.calendarButton, { backgroundColor: colors.buttonBg }]}
+          onPress={onOpenMonthly}
+          activeOpacity={0.7}
+          accessibilityLabel="View Monthly Summaries"
+        >
+          <FontAwesome5 name="calendar-alt" size={14} color={colors.iconColor} />
+        </TouchableOpacity>
+      ) : null}
+
       <Text
         style={[
           styles.title,
@@ -60,6 +79,17 @@ export function ControlBar({
       <View style={styles.buttonContainer}>
         {/* Left group: Audio, Theme, Font, Share */}
         <View style={styles.buttonGroup}>
+          {mode === 'monthly' && onBackToDaily ? (
+            <TouchableOpacity
+              style={[styles.iconButton, { backgroundColor: colors.buttonBg }]}
+              onPress={onBackToDaily}
+              activeOpacity={0.7}
+              accessibilityLabel="Back to Daily Summaries"
+            >
+              <FontAwesome5 name="arrow-left" size={14} color={colors.iconColor} />
+            </TouchableOpacity>
+          ) : null}
+
           <TouchableOpacity
             style={[styles.iconButton, { backgroundColor: colors.buttonBg }]}
             onPress={onToggleAudio}
@@ -125,7 +155,7 @@ export function ControlBar({
               style={[styles.iconButton, { backgroundColor: colors.buttonBg }]}
               onPress={onGoBack}
               activeOpacity={0.7}
-              accessibilityLabel="Previous day"
+              accessibilityLabel={mode === 'monthly' ? 'Previous month' : 'Previous day'}
             >
               <FontAwesome5
                 name="chevron-left"
@@ -140,7 +170,7 @@ export function ControlBar({
               style={[styles.iconButton, { backgroundColor: colors.buttonBg }]}
               onPress={onGoForward}
               activeOpacity={0.7}
-              accessibilityLabel="Next day"
+              accessibilityLabel={mode === 'monthly' ? 'Next month' : 'Next day'}
             >
               <FontAwesome5
                 name="chevron-right"
@@ -150,7 +180,7 @@ export function ControlBar({
             </TouchableOpacity>
           )}
 
-          {!isToday && (
+          {mode === 'daily' && !isToday && (
             <TouchableOpacity
               style={[
                 styles.todayButton,
@@ -167,6 +197,7 @@ export function ControlBar({
           )}
         </View>
       </View>
+
     </View>
   );
 }
@@ -184,6 +215,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 8,
     letterSpacing: 0.2,
+  },
+  calendarButton: {
+    position: 'absolute',
+    top: 8,
+    right: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   buttonContainer: {
     flexDirection: 'row',

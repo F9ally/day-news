@@ -27,3 +27,20 @@ create table if not exists public.daily_digests (
   items jsonb
 );
 ```
+
+## Monthly Summary
+
+`scripts/generate_monthly_summary.py` aggregates a full calendar month of
+`daily_digests` rows into one Monthly Summary: one synthesized paragraph per
+topic (duplicates/overlapping stories merged, topics never mixed), published
+to a `monthly_digests` Supabase table, plus a spoken-audio narration uploaded
+to the `news-audio` storage bucket as `monthly-<YYYY-MM>.mp3`.
+
+- Run it once per month (e.g. via cron shortly after midnight UTC on the 1st)
+  with `run_monthly_summary.sh`, or manually with
+  `python scripts/generate_monthly_summary.py [--month YYYY-MM]`.
+- Requires the `monthly_digests` table and RLS policy — see
+  `scripts/monthly_digests_schema.sql` for the exact SQL to run in Supabase.
+- The mobile app surfaces this via a calendar icon on the daily summary
+  screen; see `day-news-mobile/README.md`.
+

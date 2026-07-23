@@ -14,6 +14,14 @@ export interface DigestRecord {
   created_at: string;
 }
 
+export interface MonthlyDigestRecord {
+  id?: string;
+  month: string; // YYYY-MM
+  compiled: string; // HTML string
+  items: DigestItem[];
+  created_at: string;
+}
+
 export interface ParsedDigestItem {
   topic: string;
   emoji: string;

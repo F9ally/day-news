@@ -73,3 +73,16 @@ export function shiftDate(dateStr: string, days: number): string {
   d.setUTCDate(d.getUTCDate() + days);
   return getUTCDateStr(d);
 }
+
+/**
+ * Format a YYYY-MM month string for display, e.g. "June 2026".
+ */
+export function formatMonthForDisplay(monthStr: string): string {
+  const [year, month] = monthStr.split('-').map(Number);
+  const date = new Date(Date.UTC(year, (month || 1) - 1, 1));
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  });
+}

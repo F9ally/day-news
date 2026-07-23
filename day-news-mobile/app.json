@@ -16,7 +16,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.day2daynews.app",
+      "bundleIdentifier": "com.d2dnews",
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
@@ -28,7 +28,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.day2daynews.app"
+      "package": "com.d2dnews"
     },
     "web": {
       "favicon": "./assets/favicon.png"

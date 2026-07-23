@@ -14,12 +14,12 @@ interface UseAudioReturn {
   retryPlay: () => Promise<void>;
 }
 
-export function useAudio(dateStr: string): UseAudioReturn {
+export function useAudio(identifier: string, kind: 'daily' | 'monthly' = 'daily'): UseAudioReturn {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [audioUnavailable, setAudioUnavailable] = useState(false);
   const playerRef = useRef<AudioPlayer | null>(null);
-  const currentDateRef = useRef(dateStr);
+  const currentKeyRef = useRef(`${kind}:${identifier}`);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -32,9 +32,10 @@ export function useAudio(dateStr: string): UseAudioReturn {
     };
   }, []);
 
-  // Stop when date changes
+  // Stop when the identifier (date or month) or kind changes
   useEffect(() => {
-    if (currentDateRef.current !== dateStr) {
+    const key = `${kind}:${identifier}`;
+    if (currentKeyRef.current !== key) {
       if (playerRef.current) {
         playerRef.current.pause();
         playerRef.current.remove();
@@ -42,13 +43,14 @@ export function useAudio(dateStr: string): UseAudioReturn {
       }
       setIsPlaying(false);
       setIsLoading(false);
-      currentDateRef.current = dateStr;
+      currentKeyRef.current = key;
     }
-  }, [dateStr]);
+  }, [identifier, kind]);
 
   const getAudioUrl = useCallback(() => {
-    return `${SUPABASE_URL}/storage/v1/object/public/${AUDIO_BUCKET}/${dateStr}.mp3`;
-  }, [dateStr]);
+    const filename = kind === 'monthly' ? `monthly-${identifier}.mp3` : `${identifier}.mp3`;
+    return `${SUPABASE_URL}/storage/v1/object/public/${AUDIO_BUCKET}/${filename}`;
+  }, [identifier, kind]);
 
   const play = useCallback(async () => {
     try {
@@ -58,8 +60,8 @@ export function useAudio(dateStr: string): UseAudioReturn {
         shouldPlayInBackground: true,
       });
 
-      // If we already have a player for the same date, just resume
-      if (playerRef.current && currentDateRef.current === dateStr) {
+      // If we already have a player for the same identifier, just resume
+      if (playerRef.current && currentKeyRef.current === `${kind}:${identifier}`) {
         if (!playerRef.current.playing) {
           playerRef.current.play();
           setIsPlaying(true);
@@ -111,7 +113,7 @@ export function useAudio(dateStr: string): UseAudioReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [dateStr, getAudioUrl]);
+  }, [identifier, kind, getAudioUrl]);
 
   const pause = useCallback(() => {
     if (playerRef.current) {

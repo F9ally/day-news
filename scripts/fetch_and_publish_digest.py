@@ -598,17 +598,26 @@ def save_local_fallback(compiled: str, items: List[Dict[str, Any]]) -> str:
 
 # --- Audio generation (Kokoro TTS) -----------------------------------------
 
-def build_narration_text_from_compiled(compiled_html: str) -> str:
+def build_narration_text_from_compiled(
+    compiled_html: str,
+    intro: str = "This is Day2Day News.",
+    outro: str = "That's all for today from Day2Day News.",
+    empty_message: str = "No news items are available today.",
+    debug_filename: str = "narration_debug.txt",
+) -> str:
     """Create narration text that exactly mirrors today's displayed summary.
 
     Strategy: strip HTML tags from the compiled digest, preserve natural breaks
     after headings and paragraph tags, and unescape entities so the spoken
     text matches what users read on the page. Keep a short intro, no date.
     Remove emojis from topic headings.
+
+    The intro/outro/empty_message/debug_filename parameters allow callers
+    (e.g. the monthly summary generator) to reuse this exact pipeline with
+    different narration bookends.
     """
-    intro = "This is Day2Day News."
     if not compiled_html:
-        return intro + " No news items are available today."
+        return intro + " " + empty_message
     t = compiled_html
     # Normalize tag closings to line breaks for readability
     t = re.sub(r"</(h1|h2|h3|p|section)>", "\n", t, flags=re.IGNORECASE)
@@ -627,11 +636,10 @@ def build_narration_text_from_compiled(compiled_html: str) -> str:
     # Trim lines
     lines = [ln.strip() for ln in t.split("\n")]
     text_body = "\n".join([ln for ln in lines if ln])
-    outro = "That's all for today from Day2Day News."
     full_text = intro + "\n" + text_body + "\n" + outro
     # Save narration text for debugging
     try:
-        debug_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "out", "narration_debug.txt")
+        debug_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "out", debug_filename)
         with open(debug_path, "w", encoding="utf-8") as f:
             f.write(full_text)
         print(f"[Audio] Narration text saved to: {debug_path}")

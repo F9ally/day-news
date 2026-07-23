@@ -30,7 +30,7 @@ export function AboutScreen() {
             About & Donate
           </Text>
           <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-            Learn more about Day2Day News and how you can support us
+            Learn more and support the app
           </Text>
         </View>
 
@@ -141,11 +141,28 @@ export function AboutScreen() {
         </View>
 
         {/* Footer */}
-        <Text style={[styles.footer, { color: colors.textSecondary }]}>
-          © 2025 Day2Day News Summaries. An Astronaut Website.{'\n'}
-          AI can make mistakes. All rights reserved.{'\n'}
-          Day2Day News does not endorse any ideas, political parties or products.
-        </Text>
+        <View style={styles.footerContainer}>
+          <TouchableOpacity
+            style={styles.footerLinkContainer}
+            onPress={() =>
+              Linking.openURL(
+                'https://astronautapps.pages.dev/privacy_policy_day2daynews',
+              )
+            }
+            activeOpacity={0.7}
+            accessibilityRole="link"
+            accessibilityLabel="Open privacy policy"
+          >
+            <Text style={[styles.footerLink, { color: colors.accent }]}>
+              Privacy Policy →
+            </Text>
+          </TouchableOpacity>
+          <Text style={[styles.footer, { color: colors.textSecondary }]}>
+            © 2025 Day2Day News Summaries. An Astronaut Website.{'\n'}
+            AI can make mistakes. All rights reserved.{'\n'}
+            Day2Day News does not endorse any ideas, political parties or products.
+          </Text>
+        </View>
       </ScrollView>
     </View>
   );
@@ -202,11 +219,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 15,
   },
+  footerContainer: {
+    paddingTop: 20,
+    paddingBottom: 8,
+  },
+  footerLinkContainer: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  footerLink: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   footer: {
     textAlign: 'center',
     fontSize: 11,
     lineHeight: 16,
-    paddingTop: 20,
-    paddingBottom: 8,
   },
 });
