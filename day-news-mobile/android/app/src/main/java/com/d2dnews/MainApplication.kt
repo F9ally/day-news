@@ -1,4 +1,4 @@
-package com.day2daynews.app
+package com.d2dnews
 
 import android.app.Application
 import android.content.res.Configuration
